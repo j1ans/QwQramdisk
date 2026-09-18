@@ -15,8 +15,8 @@ Support and validation levels are deliberately separate:
 |---|---|---|---|
 | iPhone6,2 | n53ap | iOS 7.1.1 / 8.3 | `/mnt2` read-write device-tested |
 | iPhone6,1 | n51ap | iOS 7/8 | bootchain pattern-tested; 7.1.1 and 8.3 build-tested |
-| iPhone7,1 | n56ap | iOS 8 | experimental; pattern/build tests pass, unsupported on device |
-| iPhone7,2 | n61ap | iOS 8 | experimental; pattern/build tests pass, unsupported on device |
+| iPhone7,1 | n56ap | iOS 8 | tool-supported; pattern/build tested, not yet device-tested |
+| iPhone7,2 | n61ap | iOS 8 | tool-supported; pattern/build tested, not yet device-tested |
 
 The cross-device regression covers iOS 7.0.6, 7.1, 7.1.1, 7.1.2, 8.0,
 8.1, 8.2, 8.3, and 8.4.1. A passing static/build test does not claim that
@@ -184,8 +184,9 @@ addresses, XREFs, original bytes, and replacements.
 
 - iPhone6,2/n53: supported; physical `/mnt2` R/W validation on 7.1.1 and 8.3
 - iPhone6,1/n51: supported as build/pattern-tested; physical validation pending
-- iPhone7,1/n56 and iPhone7,2/n61: iOS 8 experimental builds only; unsupported
-  until physical SEP, keybagd, and `/mnt2` validation is completed
+- iPhone7,1/n56 and iPhone7,2/n61: iOS 8 is supported by the tool and has
+  passed pattern/build validation; physical SEP, keybagd, and `/mnt2` testing
+  has not yet been performed
 - `versions` prints the validation level for every selectable profile
 
 ## Credits

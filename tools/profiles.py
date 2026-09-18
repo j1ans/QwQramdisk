@@ -87,10 +87,10 @@ def validation_status(profile):
         return "build-tested"
     if model in ("n56", "n61"):
         if build == "12F70":
-            return "experimental-build-tested"
+            return "supported-build-tested-device-untested"
         if build in {"12A365", "12A366", "12B411", "12D508", "12H321"}:
-            return "experimental-pattern-tested"
-        return "experimental-untested"
+            return "supported-pattern-tested-device-untested"
+        return "supported-device-untested"
     if build in {"11B651", "11D167", "11D201", "11D257",
                  "12A365", "12B411", "12D508", "12F70", "12H321"}:
         return "pattern-tested"
