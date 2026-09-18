@@ -1,8 +1,8 @@
 # QwQramdisk
 
 QwQramdisk builds and boots iOS 7/8 arm64 SSH ramdisks for the iPhone 5s,
-iPhone 6, and iPhone 6 Plus families and mounts the protected data volume at
-`/mnt2` read-write.
+iPhone 6, iPhone 6 Plus, iPad Air, and iPad Air 2 families and mounts the
+protected data volume at `/mnt2` read-write.
 
 The tool accepts the installed iOS version, detects the connected DFU device,
 downloads only the required IPSW members, discovers patch locations from
@@ -17,10 +17,21 @@ Support and validation levels are deliberately separate:
 | iPhone6,1 | n51ap | iOS 7/8 | bootchain pattern-tested; 7.1.1 and 8.3 build-tested |
 | iPhone7,1 | n56ap | iOS 8 | tool-supported; pattern/build tested, not yet device-tested |
 | iPhone7,2 | n61ap | iOS 8 | tool-supported; pattern/build tested, not yet device-tested |
+| iPad4,1 | j71ap | iOS 7/8 | tool-supported; bootchain pattern-tested, not yet device-tested |
+| iPad4,2 | j72ap | iOS 8 | tool-supported; bootchain pattern-tested, not yet device-tested |
+| iPad4,3 | j73ap | iOS 8 | tool-supported; bootchain pattern-tested, not yet device-tested |
+| iPad5,3 | j81ap | iOS 8 | tool-supported; bootchain pattern-tested, not yet device-tested |
+| iPad5,4 | j82ap | iOS 8 | tool-supported; bootchain pattern-tested, not yet device-tested |
 
 The cross-device regression covers iOS 7.0.6, 7.1, 7.1.1, 7.1.2, 8.0,
 8.1, 8.2, 8.3, and 8.4.1. A passing static/build test does not claim that
 SEP, keybagd, or `/mnt2` has been verified on that physical model.
+
+The iPad Air and iPad Air 2 entries are experimental. Their iBSS, iBEC, and
+kernel patterns passed all 19 tested firmware/device combinations, but no
+physical iPad has completed the boot, SEP, keybagd, and `/mnt2` workflow yet.
+Use these targets at your own risk; this status will be updated when device
+test reports are available.
 
 ## Requirements
 
@@ -187,6 +198,13 @@ addresses, XREFs, original bytes, and replacements.
 - iPhone7,1/n56 and iPhone7,2/n61: iOS 8 is supported by the tool and has
   passed pattern/build validation; physical SEP, keybagd, and `/mnt2` testing
   has not yet been performed
+- iPad4,1/j71, iPad4,2/j72, and iPad4,3/j73: experimental iPad Air support;
+  11B651, 11D167, 11D201, 11D257, 12A365, 12B410, 12D508, 12F69, and 12H321
+  bootchains passed pattern validation where applicable
+- iPad5,3/j81 and iPad5,4/j82: experimental iPad Air 2 support; 12B410,
+  12D508, 12F69, and 12H321 bootchains passed pattern validation
+- iPad support has not yet been device-tested; use it at your own risk and
+  report successful boot and `/mnt2` results so this status can be updated
 - `versions` prints the validation level for every selectable profile
 
 ## Credits
