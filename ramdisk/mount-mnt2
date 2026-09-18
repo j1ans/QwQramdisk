@@ -1,0 +1,110 @@
+#!/bin/bash
+set -u
+export PATH=/usr/local/bin:/usr/bin:/usr/sbin:/bin:/sbin
+say() { echo "[mount-mnt2] $*"; }
+fail() { say "ERROR: $*" >&2; exit 1; }
+
+DATA_MOUNTED=0
+if mount | grep -q '/dev/disk0s1s2 on /mnt2 '; then
+    DATA_MOUNTED=1
+    say '/mnt2 is already mounted; continuing service setup'
+else
+    mount | grep -q '/dev/disk0s1s2' && fail 'disk0s1s2 is mounted elsewhere'
+fi
+[ -b /dev/disk0s1s1 ] || fail 'missing system volume'
+[ -b /dev/disk0s1s2 ] || fail 'missing data volume'
+if ! mount | grep -q '/dev/disk0s1s1 on /mnt1 '; then
+    mkdir -p /mnt1 || fail 'cannot create /mnt1'
+    /sbin/mount_hfs -o rdonly /dev/disk0s1s1 /mnt1 || fail 'system mount failed'
+fi
+SEP=/mnt1/usr/libexec/seputil
+FW=/mnt1/usr/standalone/firmware/sep-firmware.img4
+[ -x "$SEP" ] && [ -f "$FW" ] || fail 'matching SEP assets are missing'
+SYSTEM_VERSION=/mnt1/System/Library/CoreServices/SystemVersion.plist
+IOS7=0
+if [ -f "$SYSTEM_VERSION" ] && LC_ALL=C /usr/bin/grep -q '<string>7\.' "$SYSTEM_VERSION"; then
+    IOS7=1
+    # The patched SecureRoot callback marks this diagnostic md0 root trusted,
+    # so the normal firmware path derives the trusted 0x89B key table.  Do not
+    # ping before the initial load: that call blocks while SEP is still in ROM.
+    if [ "$DATA_MOUNTED" -eq 0 ]; then
+        if [ -x /usr/local/bin/ios7-keydiag ]; then
+            say 'reading iOS 7 key/locker state before SEP load'
+            /usr/local/bin/ios7-keydiag || say 'WARNING: pre-SEP key diagnostic failed'
+        fi
+        mkdir -p /mnt2 || fail 'cannot create /mnt2'
+        # Correct UID-mask preservation keeps the hardware slot alive.  A7
+        # can mount the LwVM volume through AP IOAES before SEPI starts, but
+        # keybagd blocks at AppleKeyStore until the matching SEP firmware is
+        # running.  Load it before the mount so launchd's waiting keybagd can
+        # register the class keys as soon as /mnt2 appears.
+        say 'loading matching iOS 7 SEP firmware'
+        "$SEP" --load "$FW" || fail 'SEP load failed'
+        /bin/sleep 2
+        "$SEP" --ping >/dev/null 2>&1 || fail 'SEP ping failed'
+        if [ -x /usr/local/bin/ios7-keydiag ]; then
+            say 'reading iOS 7 key/locker state after SEP load'
+            /usr/local/bin/ios7-keydiag || say 'WARNING: post-SEP key diagnostic failed'
+        fi
+    fi
+elif ! "$SEP" --ping >/dev/null 2>&1; then
+    say 'starting SEPI through ART_NO_ART'
+    "$SEP" --load "$FW" || fail 'SEP load failed'
+    /bin/sleep 2
+    "$SEP" --ping >/dev/null 2>&1 || fail 'SEP ping failed'
+fi
+mkdir -p /mnt2 || fail 'cannot create /mnt2'
+if [ "$DATA_MOUNTED" -eq 0 ]; then
+    /sbin/mount_hfs /dev/disk0s1s2 /mnt2 || fail 'data mount failed'
+fi
+mount | grep -q '/dev/disk0s1s2 on /mnt2 ' || fail 'mount verification failed'
+mkdir -p /mnt2/tmp || fail 'cannot create data-volume temporary directory'
+if [ "$IOS7" -eq 1 ]; then
+    say 'starting patched iOS 7 keybagd to replace the restore system handle'
+    /usr/local/libexec/keybagd.mnt2 -t 15 >/dev/console 2>&1 &
+    KEYBAGD_PID=$!
+    /bin/sleep 3
+    /bin/kill -0 "$KEYBAGD_PID" 2>/dev/null \
+        || say 'keybagd exited after registering the data-volume system bag'
+else
+    # iOS 8 can first mount the data volume through ART_NO_ART, so obtain the
+    # exact keybagd from the matching system volume and relocate its fixed
+    # /private/var paths in a writable copy.  sed appends one byte; dd copies
+    # exactly the original Mach-O length back before launchd starts it.
+    SYSTEM_KEYBAGD=/mnt1/usr/libexec/keybagd
+    [ -f "$SYSTEM_KEYBAGD" ] || fail 'matching system keybagd is missing'
+    KEYBAGD=/mnt2/tmp/qwqramdisk-keybagd
+    TEMP=/mnt2/tmp/qwqramdisk-keybagd.sed
+    /bin/cp "$SYSTEM_KEYBAGD" "$KEYBAGD" || fail 'cannot copy system keybagd'
+    SIZE="$(/usr/bin/stat -f %z "$KEYBAGD")" || fail 'cannot read keybagd size'
+    COUNT="$(LC_ALL=C /usr/bin/grep -ao '/private/var' "$KEYBAGD" | /usr/bin/wc -l)"
+    [ "$COUNT" -gt 0 ] || fail 'keybagd has no /private/var anchors'
+    LC_ALL=C /usr/bin/sed 's|/private/var|/mnt2//././.|g' "$KEYBAGD" > "$TEMP" \
+        || fail 'keybagd path replacement failed'
+    /bin/dd if="$TEMP" of="$KEYBAGD" bs="$SIZE" count=1 2>/dev/null \
+        || fail 'cannot restore exact keybagd length'
+    /bin/rm -f "$TEMP"
+    /bin/chmod 755 "$KEYBAGD" || fail 'cannot make keybagd executable'
+    REMAINING="$(LC_ALL=C /usr/bin/grep -ao '/private/var' "$KEYBAGD" | /usr/bin/wc -l)"
+    RELOCATED="$(LC_ALL=C /usr/bin/grep -ao '/mnt2//././.' "$KEYBAGD" | /usr/bin/wc -l)"
+    [ "$REMAINING" -eq 0 ] && [ "$RELOCATED" -eq "$COUNT" ] \
+        || fail 'keybagd path relocation is incomplete'
+    say "relocated $COUNT keybagd paths from the matching iOS 8 system volume"
+    /bin/launchctl kickstart -kp system/com.apple.mobile.keybagd \
+        || fail 'iOS 8 keybagd launch failed'
+    /bin/sleep 2
+    /bin/launchctl list com.apple.mobile.keybagd >/dev/null 2>&1 \
+        || fail 'iOS 8 keybagd is not registered'
+fi
+SYSTEMBAG=/mnt2/keybags/systembag.kb
+[ -f "$SYSTEMBAG" ] || fail 'system keybag is missing from the data volume'
+/bin/dd if="$SYSTEMBAG" of=/dev/null bs=16 count=1 2>/dev/null \
+    || fail 'cannot read the system keybag'
+PROBE="/mnt2/tmp/.qwqramdisk-rw.$$"
+PAYLOAD="qwqramdisk-rw-$$"
+printf '%s\n' "$PAYLOAD" > "$PROBE" || fail 'data-volume write probe failed'
+READBACK="$(/bin/cat "$PROBE")" || fail 'data-volume read probe failed'
+[ "$READBACK" = "$PAYLOAD" ] || fail 'data-volume readback mismatch'
+/bin/rm -f "$PROBE" || fail 'cannot remove data-volume probe'
+say 'system keybag read and data-volume write/read/delete passed'
+say 'ready'; mount | grep '/dev/disk0s1s2 on /mnt2 '

@@ -1,0 +1,444 @@
+[  7.730] power supply type usb host
+iBSS ready, asking for DFU...
+
+[ 15.878] executing image...
+ANS: firmware: s5l8960xans-release AppleStorageProcessor-378.5.46
+[ANS syslog] user: Calliope 8.1 for s5l8960xans on 8960.B1 - A
+[ 16.078] ppleStorageProcessor-378.5.46
+[ANS syslog] nand: Bus 0 Chip ID: 50 50 4E 01 05 05
+[ANS syslog] nand: Bus 0 Manufacturer ID: 45 82 60 DE 57 02
+[ANS syslog] nand: Bus 0 PPN FW version: 041018P_SNDSK_19
+[ANS syslog] nand: Bus 1 Chip ID: 50 50 4E 01 05 05
+[ANS syslog] nand: Bus 1 Manufacturer ID: 45 82 60 DE 57 02
+[ANS syslog] nand: Bus 1 PPN FW version: 041018P_SNDSK_19
+[ANS syslog] nand: BG_Init:Init - timestamp : 0 ms
+[ANS syslog] nand: UtilDM_PostProcess:[ 0, 0, 0] Adopting reason=1 version=0x000000b2 numDefects= 2 numSlots=18
+[ANS syslog] nand: UtilDM_PostProcess:Util last formatted on ( 1389168550 ) epoch
+[ANS syslog] nand: UtilDM_PostProcess:[ 5, 7, 0] Adopting reason=0 version=0x0000049d numDefects= 2 numSlots=10
+[ANS syslog] nand: UtilDM_PostProcess:[ 6, 8, 0] Adopting reason=0 version=0x0000049d numDefects= 2 numSlots=10
+[ANS syslog] nand: Util_Find_Fast_Scan:Found location [ 5, 7, 1] for element DM      
+[ANS syslog] nand: Util_Find_Fast_Scan:Found location [ 5, 7, 3] for element CTRLBITS
+[ANS syslog] nand: Util_Find_Fast_Scan:Found location [ 5, 7, 4] for element EFFACE  
+[ANS syslog] nand: Util_Find_Fast_Scan:Found location [ 5, 7, 5] for element NVRAM   
+[ANS syslog] nand: Util_Find_Fast_Scan:Found location [ 5, 7, 6] for element NVRAM   
+[ANS syslog] nand: Util_Find_Fast_Scan:Found location [ 5, 7, 7] for element NVRAM   
+[ANS syslog] nand: Util_Find_Fast_Scan:Found location [ 5, 7, 8] for element NVRAM   
+[ANS syslog] nand: Util_Find_Fast_Scan:Found location [ 5, 7, 9] for element NVRAM   
+[ANS syslog] nand: Util_Find_Fast_Scan:Found location [ 5, 7,10] for element NVRAM   
+[ANS syslog] nand: Util_Find_Fast_Scan:Found location [ 5, 7,11] for element NVRAM   
+[ANS syslog] nand: Util_Find_Fast_Scan:Found location [ 5, 7,12] for element NVRAM   
+[ANS syslog] nand: Util_Find_Fast_Scan:Found location [ 5, 7,13] for element NVRAM   
+[ANS syslog] nand: Util_Find_Fast_Scan:Found location [ 5, 7,14] for element NVRAM   
+[ANS syslog] nand: Util_Find_Fast_Scan:Found location [ 5, 7,15] for element NVRAM   
+[ANS syslog] nand: Util_Find_Fast_Scan:Found location [ 5, 7,16] for element NVRAM   
+[ANS syslog] nand: Util_Find_Fast_Scan:Found location [ 5, 7,17] for element NVRAM   
+[ANS syslog] nand: Ut
+[ 16.279] il_Find_Fast_Scan:Found location [ 5, 7,18] for element NVRAM   
+[ANS syslog] nand: Util_Find_Fast_Scan:Found location [ 5, 7,19] for element NVRAM   
+[ANS syslog] nand: Util_Find_Fast_Scan:Found location [ 5, 7,20] for element NVRAM   
+[ANS syslog] nand: Util_Find_Fast_Scan:Found location [ 5, 7,21] for element NVRAM   
+[ANS syslog] nand: Util_Find_Fast_Scan:Found location [ 5, 7,22] for element NVRAM   
+[ANS syslog] nand: Util_Find_Fast_Scan:Found location [ 5, 7,23] for element NVRAM   
+[ANS syslog] nand: Util_Find_Fast_Scan:Found location [ 5, 7,24] for element NVRAM   
+[ANS syslog] nand: Util_Find_Fast_Scan:Found location [ 5, 7,25] for element NVRAM   
+[ANS syslog] nand: Util_Find_Fast_Scan:Found location [ 5, 7,26] for element NVRAM   
+[ANS syslog] nand: Util_Find_Fast_Scan:Found location [ 5, 7,27] for element NVRAM   
+[ANS syslog] nand: Util_Find_Fast_Scan:Found location [ 5, 7,28] for element NVRAM   
+[ANS syslog] nand: Util_Find_Fast_Scan:Found location [ 5, 7,29] for element NVRAM   
+[ANS syslog] nand: Util_Find_Fast_Scan:Found location [ 5, 7,30] for element NVRAM   
+[ANS syslog] nand: Util_Find_Fast_Scan:Found location [ 5, 7,31] for element NVRAM   
+[ANS syslog] nand: Util_Find_Fast_Scan:Found location [ 5, 7,32] for element NVRAM   
+[ANS syslog] nand: Util_Find_Fast_Scan:Found location [ 5, 7,33] for element NVRAM   
+[ANS syslog] nand: Util_Find_Fast_Scan:Found location [ 5, 7,34] for element NVRAM   
+[ANS syslog] nand: DM_Decompress:Decompressing DM version:100
+[ANS syslog] nand: DM_Decompress:Found stats in Util region
+[ANS syslog] nand: DM_Decompress:      .vDisables    :    0
+[ANS syslog] nand: DM_Decompress:      .firstUserBand:    3
+[ANS syslog] nand: DM_Decompress:      .lastUserBand : 1053
+[ANS syslog] nand: DM_Decompress:      .hostCapacity :   14 GB
+[ANS syslog] nand: DM_Decompress:      .coreCapacity :   15 GB
+[ANS syslog] nand: DM_Decompress:      .indMemory    : 2048 KB
+[ANS syslog] nand: DM_Decompress:      .numDefect    :   21
+[ANS syslog] nand: DM_Decompress:      .hopIdx       :   32
+[ANS syslog] nand: DM_Decompress:      .numProb      :    0
+[ANS syslog] nand: BG_Init:Util - timestamp : 290 ms
+ASP Block
+[ 16.480]  Device 3906250 lbas, 4096 bytes per lba, utilFormatted:1 lbaFormatted:0
+setting (SLC_WRITE=1,READ=2,ERASE=2,MLC_WRITE=2) parallel per channel
+SysCfg: version 0x00020002 with 57 entries using 1164 of 131072 bytes
+BDEV: protecting 0x2000-0x8000
+image 0x83d99bbc0: bdev 0x83d9a0100 type ibot offset 0x0 len 0x6f3e5
+image 0x83d99bc40: bdev 0x83d9a0100 type bat0 offset 0x6f3e5 len 0xbd03
+image 0x83d99bcc0: bdev 0x83d9a0100 type bat1 offset 0x7b0e8 len 0x1aa3
+image 0x83d99bd40: bdev 0x83d9a0100 type glyP offset 0x7cb8b len 0x2213
+image 0x83d99bdc0: bdev 0x83d9a0100 type batF offset 0x7ed9e len 0x15b06
+image 0x83d99be40: bdev 0x83d9a0100 type chg0 offset 0x948a4 len 0x38a3
+image 0x83d99bec0: bdev 0x83d9a0100 type recm offset 0x98147 len 0xf023
+image 0x83d99bf40: bdev 0x83d9a0100 type dtre offset 0xa716a len 0x23eb3
+image 0x83d996040: bdev 0x83d9a0100 type logo offset 0xcb01d len 0x2d43
+image 0x83d9960c0: bdev 0x83d9a0100 type chg1 offset 0xcdd60 len 0x9b63
+Display PMU found, 0x0000f375, Unknown-a0
+pinot_init()
+mipi_dsim_init()
+pinot_init(): pinot_panel_id:      0xa1c313cf
+p
+[ 16.681] inot_init(): pinot_default_color: 0x00000000
+pinot_init(): pinot_backlight_cal: 0x00000094
+
+
+=======================================
+::
+:: iBEC for n53ap, Copyright 2013, Apple Inc.
+::
+::	BUILD_TAG: iBoot-1940.10.58
+::
+::	BUILD_STYLE: RELEASE
+::
+::	USB_SERIAL_NUMBER: CPID:8960 CPRV:11 CPFM:03 SCEP:01 BDID:02 ECID:[REDACTED] IBFL:1C SRNM:[REDACTED]
+::
+=======================================
+
+
+[ 26.657] [ANS syslog] nand: Replay_BG:Loaded from unclean shutdown
+
+[ 26.862] [ANS syslog] nand: BG_Init:Clog Read-Only - timestamp : 10776 ms
+ASP Block Device 3906250 lbas, 4096 bytes per lba, utilFormatted:1 lbaFormatted:1
+Boot Failure Count: 1	Panic Fail Count: 0
+Delaying boot for 0 seconds. Hit enter to break into the command prompt...
+boot-command 'fsboot' not supported
+Entering recovery mode, starting command prompt
+
+[ 33.573] loaded ramdisk at 0x808000000 of size 0x2faf080, from image at
+[ 33.777]  0x800000000
+
+[ 41.720] loaded device tree at 0x807f00000 of size 0x22ac0, from image at 0x800000000
+
+[ 50.073] Attempting to validate kernelcache @ 0x800000000
+monitor loaded at virt: 4100000000, phys: 800600000, entry: 410000c120
+Loading kernel cache at 0x804000000
+
+[ 50.480] Uncompressed kernel cache at 0x804000000
+gBootArgs.commandLine = [rd=md0 debug=0x2014e -v wdt=-1 nand-enable-reformat=1 -restore amfi=0xff cs_enforcement_disable=1 ]
+
+[ 50.686] kernelcache prepped at address 0x80060c120
+[ANS management] IOP state changed to 0x1 (mgmt state=1)
+ANS: in suspend to RAM
+
+[ 50.887] iBoot version: iBoot-1940.10.58
+corecrypto_kext_start called
+kext fips mode set to 2
+fips_mode being set to 1  verbose is set to 1!
+Plist hmac value is    e01d5cc661edffd232e14bf1a1dade3b7090429154106d17b4b607878e3b6a4b
+Computed hmac value is e01d5cc661edffd232e14bf1a1dade3b7090429154106d17b4b607878e3b6a4b
+corecrypto.kext FIPS integrity POST test passed!
+corecrypto.kext FIPS AES CBC POST test passed!
+corecrypto.kext FIPS TDES CBC POST test passed!
+corecrypto.kext FIPS AES ECB POST test passed!
+corecrypto.kext FIPS AES XTS POST test passed!
+corecrypto.kext FIPS SHA POST test passed!
+corecrypto.kext FIPS HMAC POST test passed!
+corecrypto.kext FIPS ECDSA POST test passed!
+corecrypto.kext FIPS DRBG POST test passed!
+
+[ 52.307] corecrypto.kext FIPS RSA POST test passed!
+corecrypto.kext FIPS POST passed!
+corecrypto_kext_start completed sucessfully
+kern_return_t _initializeAppleMobileFileIntegrity(): unrestricted task_for_pid enabled by boot-arg
+kern_return_t _initializeAppleMobileFileIntegrity(): signature enforcement disabled by boot-arg
+kern_return_t _initializeAppleMobileFileIntegrity(): signature enforcement disabled by boot-arg
+kern_return_t _initializeAppleMobileFileIntegrity(): cs_enforcement disabled by boot-arg
+AppleS5L8960XIO::start: chip-revision: B1
+AppleS5L8960XIO::_enableErrors: PIO and AF errors enabled
+AppleARMBacklight::start: Using new Backlight Architecture 1
+AppleARMBacklight::start: _lMaxProduct=30474240
+AppleARMBacklight::start: _lMidProduct=9175040
+AppleARMBacklight::start: _lMinProduct=380941
+AppleARMBacklight::start: _calibratedMaxCurrent=19130
+AppleARMBacklight::start: _calibratedMidCurrent=5740
+AppleARMBacklight::start: mA2Nits2ndOrderCoef=4294967295
+AppleARMBacklight::start: mA2Nits1stOrderCoef=58
+AppleARMBacklight::start: no mA2Nits0thOrderCoef data, use zero
+AppleARMBacklight::start: nits2mAmps2ndOrderCoef=3328
+AppleARMBacklig
+[ 52.508] ht::start: nits2mAmps1stOrderCoef=16773
+AppleARMBacklight::start: no nits2mAmps0thOrderCoef data, use zero
+AppleARMBacklight::start: Backlight calibration data 148
+AppleARMBacklight::start: vers=1.0, iMid=5500, iMax=20000, nitsAt20mA=547
+AppleARMBacklight::start: _lMaxProduct=30474240, _lMidProduct=9175040, _lMinProduct=380941, _lMaxPanel=35751920, _lMidPanel=11009469, _lMinPanel=446789, _milliAmps2NitsScaleFactor=547000
+AppleKeyStore starting (BUILT: Mar 28 2014 21:44:35)
+AppleInterruptController::start: _aicVersion = 1 _aicBaseAddress = 0xffffff80a5725000 _aicNumExtInts = 0x000000c0 _aicNumIPIs = 0x00000004
+AppleARMPerformanceController::traceBufferEnable: Trace is enabled
+AppleARMPerformanceController::start: selecting pm-policy: ARBITER
+AppleS5L8960XPerformanceController::start: this: 0xffffff808b17c000,  pmgr@0x20e000000 mapped to _pcBaseAddress: 0xffffff8009316000
+AppleS5L8960XPerformanceController::start CCC.pwrctl@0x202220000 mapped to _pcCCCPwrCtlBaseAddress: 0xffffff8002c6c000
+AppleS5L8960XPerformanceController::start: _pcPSRegs[2d]=> 0x2000
+AppleS5L8960XPerformanceController::start: _pcPSRegs[1d]=> 0xFC0706
+AppleS5L8960XPerformanceController::start: _pcPSRegs[0d]=> 0x3F8181B8
+AppleARMPerformanceController configured with 2 Performance Domains
+  Performance Domain 0 : pcVoltageStateCount: 1 pcPerformanceStateCount: 1
+    Voltage State 0 : .vsPerformanceLimit: *1.000  .vsDeviceConstraint: 35ffff9f 3e7f3fff 00fd0000 0f555557
+    Performance State 0 : .psPerformanceDivider: *1.000  .psVoltageRequired: 0 .psDeviceConstraint: 35ffff9f 3e7f3fff 00fd0000 0f555557
+  Performance Domain 1 : pcVoltageStateCount: 5 pcPerformanceStateCount: 5
+    Voltage State 0 : .vsPerformanceLimit: *0.396  .vsDeviceConstraint: 00000000 00000000 00000000 00000000
+    Voltage State 1 : .vsPerformanceLimit: *0.600  .vsDeviceConstraint: 00000000AppleS5L8960XGPIOIC::start: this: 0xffffff808
+[ 52.709] b057c00, _gpioicBaseAddress: 0xffffff80a5825000
+AppleS5L8960XMemCacheController::start: this: 0xffffff808b05bc00, virt addr: 0xffffff80093d6000, phys addr: 0x200000000
+AppleS5L8960XMemCacheController::start: MCC max configs = 4
+AppleS5L8960XPlatformErrorHandler::start: this: 0xffffff808b057a00, AMC virt addr: 0xffffff8002c8d000, AMC phys addr: 0x200000000
+			CP virt addr: 0xffffff8002c8e000, CP phys addr: 0x200d10000
+AppleS5L8920XPWM::start: _pwmBaseAddress: 0xffffff8002c9c000
+AppleSamsungSPIController::start: spi1: _spiBaseAddress = 0xffffff8002caa000, _spiVersion = 1 _spiInternalCS = 0
+AppleSamsungSPIController::start: spi2: _spiBaseAddress = 0xffffff8002cb6000, _spiVersion = 1 _spiInternalCS = 0
+AppleSamsungSPIController::start: spi3: _spiBaseAddress = 0xffffff8002cba000, _spiVersion = 1 _spiInternalCS = 0
+AppleS5L8960XUSBPhy::start: hsic disabled
+AppleARMIICController::start buffer=0xffffff808b0fc980 entries=8
+AppleS5L8940XI2CControlAppleARMIICController::start buffer=0xffffff808b0fc300 entries=8
+AppleS5L8940XI2CController::start: i2c1 this: 0xffffff808b21c000 _i2cBaseAddress: 0xffffff8002cbe000
+AppleSamsungMIPIDSIController::start: _dsimBaseAddress = 0xffffff8002ccc000
+AppleAE2MCA(0xffffff808b230e00)::start: mca0 i2sBaseAddress: 0xffffff8008cd6000
+AppleAE2MCA(0xffffff808b234c00)::start: mca1 i2sBaseAddress: 0xffffff8008cda000
+AppleAE2MCA(0xffffff808b238a00)::start: mca2 i2sBaseAddress: 0xffffff8008c
+[ 52.910] e6000
+AppleAE2MCA(0xffffff808b23d800)::start: mca3 i2sBaseAddress: 0xffffff8008ceb000
+AppleAE2MCA(0xffffff808b240600)::start: mca4 i2sBaseAddress: 0xffffff8008cf7000
+AppleH6CamIn::start
+ 00000000 00000000 00000000
+    Voltage State 2 : .vsPerformanceLimit: *0.840  .vsDeviceConstraint: 00000000 00000000 00000000 00000000
+    Voltage State 3 : .vsPerformanceLimit: *1.128  .vsDeviceConstraint: 00000000 00000000 00000000 00000000
+    Voltage State 4 : .vsPerformanceLimit: *1.296  .vsDeviceConstraint: 00000000 00000000 00000000 00000000
+    Performance State 0 : .psPerformanceDivider: *1.296  .psVoltageRequired: 4 .psDeviceConstraint: 00000000 00000000 00000000 00000000
+    Performance State 1 : .psPerformanceDivider: *1.128  .psVoltageRequired: 3 .psDeviceConstraint: 00000000 00000000 00000000 00000000
+    Performance State 2 : .psPerformanceDivider: *0.840  .psVoltageRequired: 2 .psDeviceConstraint: 00000000 00000000 00000000 00000000
+    Performance State 3 : .psPerformanceDivider: *0.600  .psVoltageRequired: 1 .psDeviceConstraint: 00000000 00000000 00000000 00000000
+    Performance State 4 : .psPerformanceDivider: *0.396  .psVoltageRequired: 0 .psDeviceConstraint: 00000000 00000000 00000000 00000000
+AppleARMPerformanceController: Dynamic Voltage Dithering Enabled on Performance Domain 1 with 8000us period and 1000us threshold
+AppleS5L8960XPerformanceController::start: pcDPSMPerformanceDomain:0
+AppleS5L8960XPerformanceController::_restorePMGRState: _pcPSRegs[ler::start: i2c0 this: 0xffffff808b21c400 _i2cBaseAddress: 0xffffff8002cae000
+2]=> 0x2000
+AppleS5L8960XPerformanceController::_restorePMGRState: _pcPSRegs[1]=> 0xFC0706
+AppleS5L8960XPerformanceController::_restorePMGRState: _pcPSRegs[0]=> 0xFF8001B8
+
+[ 53.111] AppleARMCPUPerformanceArbiter::init
+AppleARMPerformanceController::attachToChild : child -> 0xFFFFFF808B27AE00
+AppleARMCPUPerformanceArbiter::probe
+AppleARMCPUPerformanceArbiter::start
+AppleS5L8940XDWI::start v1 _dwiBaseAddress: 0xffffff8002c9b000, buck mask = 0x00000000
+AppleS5L8900XMIPIDSIController::start: Slow Adaptive Clocking enabled with 19 frequencies
+AppleS5L8960XMemCacheController::Csoutladrtn:' t fialnilsoche dcl
+ass "AGXAcceleratorG4P_AA0p"
+pleApSp5lLe89S560L8XW96at0XchPeDorfgTorimmaern:c:eCsotantrtr:ol _lewdr:tB:astsearAtd:dr Desyns:am 0icx fSffoCff fTu80ni0n2cg8 cis00 0e n_awbdltedR
+esAetpCpoleuSn5t=L08x9e640eXP1ecr00f
+ormAanpcpelCeoSn5Ltr8o9l6l0eXrP:la:sttfoarrtmE: rCroPUr HaIdnldel eDr:et:esctta rit:s  efninaibslehde
+d
+AppleSamsungSerial: Identified SeriAalp pPloerCtS Io(nA NASR)M:  Dsetavircte(=)u a-r 0t0x faftf f0fxf2800a80b2a08090000(0
+0xffffff8008d26000)
+ApplePMGRTempSensor: Enable temp alarm
+ApplePMGRTempSensor: Enable temp alarm
+AppleSamsungSerial: Identified Serial Port on ARM Device=uart6 at 0x20a0b8000(0xffffAfpf8p0le08Ddis2ap0la00y)PM
+UA:p:psltaePrMt:GR TdeismppSleanys-opmr:u  _EnpamublIeIC tNeubmp:  0axlaffrmf
+fffAp80pl8eb2PM9G94RT0e0 mpbSuienlst or2:1: E1n2:ab3l7 e Mtarem p28 a l20ar1m4
+
+virtual bool AGXAccelerator::start(IOService *): Found device modelA:p Npl53eAD2P
+045ApPMplUe::CSsIta(ArNt:S) p:m ruu n_pnimnuIg,I CvNeurbs:i o0xn f8ff.1f
+ff808b299600 buAippllt eS2a1:ms1u2:ng1S0 erMiaral :28 I d20en1t4
+ified Serial Port on ARM Device=uart3 at 0x20a0ac000(0xffffff8008d5a000)
+ASPStorage::startv i-r AtSuaP lc obmoomla ndA pptliemeSEoPuMt ainsag e3r0 :s:esctoarndts(I
+OASSePrSvitcore a*g)e::: A
+llocateResources - AvSoiPd  # AcpmpdlseS 6E4PKABR TS2t0o 1rMaBg e1::1 e8nsMuBr 1e
+_nAvrpapmle(S):am sWuanigtiSenrg ifaol:r  INdVeRAntMi
+
+fiveoidd  SeArpipalleS PEoPArRtT oSnt oArRagM eD::eevnicseu=ruea_rntv5r aamt() :0 x2G0oat0 bNV40R0AM0 (O0xKf
+f
+ffff8008d66000)
+ASPStorage::HanvdliretAuSPaElv ebnoot l-  ApHpolste SpErPo
+[ 53.313] Matoncaogle r:ve:rstsairont (1IO0 Saesrpvcicoree * )p:ro tcoocnotrl ovl eernsidopno i1nt0
+s AcSrPeSattoerd
+age::GetNANDGeometry - vNiANrDt uGael ombeootlr y AipnpfloeS:
+EPAMSaPnSagtoerr:a:gse:t:aGrett(INAONSeDrGveoimceet r*)y:  - rNeugmi stLBeAresd 
+       v ir t u  a:l  3b9oo06l2 5A0pp
+lAeSSPEPStMoarnaaggee:r::G:esttNaArNt(DGIeOSoemrevtircye  - *B)y:t ePMs  pineirt L BdAo n e
+ I O  R e t:u rn40 9Ap6p
+lAeSSPESPMtaonraaggee:r:::Ge_tseNtAPNDoGweeormSteatrtye( u-n Psriegfneedrr elodn gbu f*f)e:r p soiwezre : s6t5a5t3e 6
+0 A-S>P S1t
+o
+rage::GetNANDGeometry - lbaFormatted         : YES
+ASPStorage::GetNANDGeometry - utilFormatted        : YES
+[ANS syslog: nand] Push_PowerGovernorInit:Nand Die:2      MLC: 2 No     SLC: 2 No     Erase:2
+ASPBlockStorage::StartService - Creating block devicAep opfl e3CS90462L26570 Asuedcito:or:sst aorf t4:0 096x fbfyftffesf
+80A8pbp2l7eeA4R00M,B aackudliiogh-tc:o:dsecta rptr:ov _imdeirn:DA C0Lxefvffelf=ff48701 8_bm2a8xfbDA0C0,L e_veili=s1N9ub7:3 
+0xAfSfPSfEfPfNfo80ti8fb2ifear:c0:0s
+taArptp le- CES3n5tLry1 9tAhmip:s :=st a0rxftf:f f0fxfff8f08fbf2fe800980b02 bper0o0v0i,d earud i= o0-xspfeffakffefr8 0p8rob2vcid4eer00:
+ 0AxfSfPSfEfPfNfo8t0i8fbi2e9r9:1:0s0t,a r_tii -s NuEbx:it  0Sxufcffcefsffs8
+0A8bSP3S04EP7N00o
+tifier::WaitForASP - Waiting for ASPStorage
+ASPSEPNotifier::message - msg = 3758096944
+ApplePinotLCD: _lcdPanelID: 0xa1c313cf _lcdPanelClass: 2
+AppleSamsungSerial: Identified Serial Port on ARM Device=uart1 at 0x20a0a4000(0xffffff8008d96000)
+AppleSamsungSerial: Identified Serial Port on ARM Device=uart2 at 0x20a0a8000(0xffffff8008d9a000)
+AppleSamsungSerial: Identified ISOeSriuarlf aPceorRtoo ton:: iAnRMs tDaelvlMiceemo=ruyarRte4g iaont s0(x)2
+0a0b0000(0xffffff8008da6000)
+AppleCS35L19Amp: could not allocate coAnptprleolB as3e9b5
+anpdm::us tfaaurtlt(0 lxofgf:f ffbtfn80_8rbs1t8
+9B0S0D0 ):r oobtas:e bmda0n,d 
+major 3, minor 0
+com.apple.AppleFSCompressionTypeZlib kmod start
+com.apple.AppleFSCompressionTypeZlib load succeeded
+L2TP domain init
+L2TP domain init complete
+PPTP domain init
+000192.133660 AppleBasebandN41::loadDebugArguments: Loaded debug arguments 0x00000001
+Found DPB Driver 
+Dither pDeviceMemory->getLength()) = 0x8000 
+Found Dither Driver 
+virtualA bPoPoLlEV XADpp3l9e3D istsaprlta yP:i:p:e :In
+[ 53.514] :sittFaorrt_PhMa rddonwaer,e -( ImOS_efrovriceceV XD*P)o,w eaurtOon-AdteBtoeoctt 0 c h- ipch a
+nvgoeiPodw eArpSplteaDtiesTopl(a0y) Pdiopen:e:
+setupVideoDownscalingLimits(): minimum-frequency property not found, using getClockFrequency(0) instead.
+bool AppleMobileADBE0::startWithIBoot(): workaround for <rdar://problemL/w1V3M4:6 6m8e0d0ia>:  todois asmballinlg
+ Dither BN
+Starting GPU driver built on: Mar 28 2014 21:50:20
+-----------------------
+Loading META FW...
+-----------------------
+--------------
+META is alive!
+--------------
+AppleH6CamIn::start - backA pcpalmeeCrhea setxnupteDctiesdp
+layAPpMplUe:H:6sCeatmLIDOn::: lsdtoar:2t , -o fprtioontn sc:a0mx0er3a,  eenxapbecltee:d0
+
+AppleH6CamIn::power_off_hardware
+AppleH6CamIn::setPowerStateGated: 0
+AppleH6CamIn::start - About tÿ42f000]::setPowerStateGated: 192183552416: setting power state powerStateOrdinal=1
+AppleS5L8960XPerformanceController::start: Dynamic Framebuffer Caching is enabled
+LwVM::probe - failed to read header from media
+[effaceable:INIT] found current generation, 49, in group 0
+[effaceable:INIT] started
+AppleMultitouchN1SPI: successfully started
+000192.246821 AppleBasebandN41::start: Could not find uart2TxFunction
+AppleBaseband: The number of backpowering pins: 1
+000192.247109 AppleBasebandN41::start: Could not find reset PMU function
+AppleD2045PMUPowerSource: AppleUSBCableDetect 1
+AppleD2045PMUPowerSource: AppleUSBCableType USBHost
+com.apple.launchd      A p p le  S y n op s 1ys  OT  GD  e vi cceom::.astpparlet .l: aurencgihdst  e rs   a  t  0 x f f  f ff  f8  0a  60 8 1 0 0 0  ,   0 x 2 0c  10  00  0 0   p h y s ic  al 1
+         *** launchd[1] haAppleSynopsysOTGDevice::gated_handleUSBCableConnect cable connected, but don't have device configuration yet
+s started up. ***
+com.apple.launchd                1        com.apple.launchd                  AppleSynopsysOTGDevice::gated_handleUSBCableConnect cable connected, but don't have device configuration yet
+                              1   
+[ 53.718]       *** Verbose boot, will log to /dev/console. ***
+AppleChestnutDisplayPMU::setLDO: ldo:2, options:0x03, enable:1
+dyld: Registered code signature for /usr/lib/libiconv.2.dylib
+============================================================
+ iOS 7/8 arm64 SSH ramdisk b  mount data with: mount-mnt2
+ SSH root password: alAppleMultitouchN1SPI: detected HBPP. driver will be kept alive
+pineA
+ppl=e=C=h==es==t=n=u=t=D=i=s=p=l=a=y=P=M=U=:=:=s=e=t=L=D=O=:= =l=d=o=:=2=,= =o=p=t=i=o=n=s=:0=x=0==3=,= =e=n=a=b=l=e=:=0=
+
+[5] Jan 01 18:37:24 Running in background
+entering set_boot_stage
+
+[ 53.919] inverting UI colordisplay-scale = 2
+display-rotation = 0
+found applelogo at /usr/share/progressui/applelogo@2x.tga
+found display: primary
+display: 640 x 1136
+gasgauge: updateThread start
+found PTP interface
+AppleSynopsysOTGDevice - Configuration: PTP
+AppleSynopsysOTGDevice          Interface: PTP
+AppleSynopsysOTGDevice - Configuration: iPod USB Interface
+AppleSynopsysOTGDevice          Interface: USBAudioControl
+AppleSynopsysOTGDevice          Interface: USBAudioStreaming
+AppleSynopsysOTGDevice          Interface: IapOverUsbHid
+AppleSynopsysOTGDevice - Configuration: PTP + Apple Mobile Device
+AppleSynopsysOTGDevice          Interface: PTP
+AppleSynopsysOTGDevice          Interface: AppleUSBMux
+AppleSynopsysOTGDevice - Configuration: PTP + Apple Mobile Device + Apple USB Ethernet
+AppleSynopsysOTGDevice          Interface: PTP
+AppleSynopsysOTGDevice          Interface: AppleUSBMux
+AppleSynopsysOTGDevice          Interface: AppleUSBEthernet
+AppleSynopsysOTGDevice::gated_registerFunction Register function USBAudioControl
+IOAccessoryPortUSB::start
+virtual bool AppleUSBDeviceMux::start(IOService *) build: Mar 28 2014 21:44:33
+AppleSynopsysOTGDevice::gated_registerFunction Register function IapOverUsbHid
+AppleSynopsysOTGDevice::gated_registerFunction Register function PTP
+init_waste
+AppleSynopsysOTGDevice::gated_registerFunction Register function USBAudioStreaming
+AppleSynopsysOTGDevice::gated_registerFunction Register function AppleUSBEthernet
+waitiAppleSynopsysOTGDevice::gated_registerFunction Register function AppleUSBMux
+nAppleSynopsysOTGDevice::startUSBStack Starting usb stack
+g for matching IOKit service: <CFBasicHash 0x13d6070c0 [0x1004070c0]>{type = mutable dict, count = 1,
+entries =>
+	0 : <CFString 0x10057f7f0 [0x1004070c0]>{contents = "IOProviderClass"} = <CFString 0x13d607190 [0x1004070c0]>{contents = "AppleUSBDeviceMux"}
+}
+
+
+[ 54.526] AppleSynopsysOTGDevice::stallBadSetupRequest request: 80 06 0f00 0000 0005
+AppleSynopsysOTGDevice::stallBadSetupRequest request: 80 06 0f00 0000 0005
+AppleBCMWLANCore::init(): IO80211-46 Mar 28 2014 21:12:05
+000193.321958 wlan.N[0] AppleBCMWLANCore::start(): Starting with MAC Address: [REDACTED]
+000193.330938 wlan.N[1] AppleBCMWLANCore::setPowerStateGated():   powerState 1, fStateFlags 0x20, dev 0xffffff808b037000 (this 1, provider 0)
+000193.343718 wlan.N[2] AppleBCMWLANCore::setPowerStateGated():  Received power state change before driver has initialized, ignoring
+IO80211Peer::addPhyStatistics Phy stats started for addr 00:be:ef:ff:ff:ff
+IO80211Peer::addPhyStatistics Tx Completion stats started for addr 00:be:ef:ff:ff:ff
+IO80211PeerManager::initWithInterface cant add monitoring timer
+Started logging for intf
+IO80211PeerManager::initWithInterface:
+[ 54.728]  inited peer manager
+IO80211Interface::init peerManager=0xffffff808b77f800
+start:156
+start:156
+start:156
+
+[ 56.956] IOReturn AppleUSBDeviceMux::setPropertiesGated(OSObject *) setting debug level to 7
+void AppleUSBDeviceMux::handleMuxTCPInput(mbuf_t) received reset, closing 0xffffff808b757800
+recv(12, 4) fAppleUSBDeviceMux::handleConnectResult new session 0xffffff808b757c00 established 62078<-lo0->49153 62078<-usb->8735
+aAppleUSBDeviceMux::handleConnectResult new session 0xffffff808b757b80 established 62078<-lo0->49154 62078<-usb->8991
+iAppl
+[ 57.156] eUSBDeviceMux::handleConnectResult new session 0xffffff808b750580 established 62078<-lo0->49155 62078<-usb->9247
+ledAppleUSBDeviceMux::handleConnectResult new session 0xffffff808b799f00 established 62078<-lo0->49156 62078<-usb->9503
+: cAppleUSBDeviceMux::handleConnectResult new session 0xffffff808b790480 established 62078<-lo0->49157 62078<-usb->9759
+onnAppleUSBDeviceMux::handleConnectResult new session 0xffffff808b7a0f00 established 62078<-lo0->49158 62078<-usb->10015
+eAppleUSBDeviceMux::handleConnectResult new session 0xffffff808b7a0d80 established 62078<-lo0->49159 62078<-usb->10271
+cAppleUSBDeviceMux::handleConnectResult new session 0xffffff808b7a0c80 established 62078<-lo0->49160 62078<-usb->10527
+tion closed
+void AppleUSBDeviceMux::handleMuxTCPInput(mbuf_t) received reset, closing 0xffffff808b757c00
+unable to read message size: void AppleUSBDeviceMux::handleMuxTCPInput(mbuf_t) received reset, closing 0xffffff808b750580
+-1void AppleUSBDeviceMux::handleMuxTCPInput(mbuf_t) received reset, closing 0xffffff808b7a0f00
+void AppleUSBDeviceMux::handleMuxTCPInput(mbuf_t) received reset, closing 0xffffff808b757b80
+
+recv(13, 4) fvoid AppleUSBDeviceMux::handleMuxTCPInput(mbuf_t) received reset, closing 0xffffff808b799f00
+aivoid AppleUSBDeviceMux::handleMuxTCPInput(mbuf_t) received reset, closing 0xffffff808b790480
+levoid AppleUSBDeviceMux::handleMuxTCPInput(mbuf_t) received reset, closing 0xffffff808b7a0d80
+dvoid AppleUSBDeviceMux::handleMuxTCPInput(mbuf_t) received reset, closing 0xffffff808b7a0c80
+: connection closed
+recv(15, 4) failed: connection closed
+recv(18, 4) failed: connection closed
+recv(14, 4) failed: connection closed
+could not receive meAppleUSBDeviceMux::handleConnectResult new session 0xffffff808b7a0e00 established 22<-lo0->49161 22<-usb->10783
+ssage
+recv(16, 4) failed: connection closed
+[7] Jan 01 18:37:27 Child connection from 127.0.0.1:49161
+recv(17, 4) failed: connection closed
+recv(19, 4) failed: connection closed
+recv(20, 4) failed: connection closed
+unable to read message size: -1
+unable to read message size: -1
+unable to read message size: -1
+unable to read message size: -1
+unable to read message size: -1
+unable to read message size: -1
+unable to read message size: -1
+[ 57.362] 
+unable to read message size: -1
+could not receive message
+could not receive message
+could not receive message
+could not receive message
+could not receive message
+could not receive message
+could not receive message
+could not receive message
+[7] Jan 01 18:37:27 Password auth succeeded for 'root' from 127.0.0.1:49161
+void AppleUSBDeviceMux::handleMuxTCPInput(mbuf_t) received reset, closing 0xffffff808b7a0e00
+[7] Jan 01 18:37:27 Exit (root): Disconnect received
+

@@ -1,0 +1,10 @@
+============================================================
+ qwqramdisk — iOS 7/8 arm64 SSH ramdisk
+============================================================
+
+Mount the data volume read-write at /mnt2 with:
+
+    mount-mnt2
+
+This mounts disk0s1s2 read-write, loads matching SEP firmware only
+when needed, and verifies systembag read plus write/read/delete.

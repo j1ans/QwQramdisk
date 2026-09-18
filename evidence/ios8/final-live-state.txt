@@ -1,0 +1,7 @@
+Warning: Permanently added '[localhost]:2236' (ECDSA) to the list of known hosts.
+dyld: Registered code signature for /usr/lib/libiconv.2.dylib
+dyld: Registered code signature for /usr/lib/libiconv.2.dylib
+/dev/disk0s1s2 on /mnt2 (hfs, local, journaled, noatime, protect)
+dyld: Registered code signature for /usr/lib/libiconv.2.dylib
+	state = running
+	pid = 33

@@ -1,0 +1,9 @@
+cache/
+output/
+__pycache__/
+*.pyc
+tools/lzssenc
+work/
+.DS_Store
+-b
+BLOG.md

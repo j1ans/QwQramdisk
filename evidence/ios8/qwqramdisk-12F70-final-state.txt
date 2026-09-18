@@ -1,0 +1,22 @@
+Warning: Permanently added '[localhost]:2236' (ECDSA) to the list of known hosts.
+dyld: Registered code signature for /usr/lib/libiconv.2.dylib
+kern.osversion: 12F70
+kern.bootargs: rd=md0 -v serial=3 amfi=0xff cs_enforcement_disable=1 
+dyld: Registered code signature for /usr/lib/libiconv.2.dylib
+/dev/disk0s1s2 on /mnt2 (hfs, local, journaled, noatime, protect)
+{
+	"EnableTransactions" = true;
+	"LimitLoadToSessionType" = "System";
+	"MachServices" = {
+		"com.apple.mobile.keybagd.mach" = mach-port-object;
+		"com.apple.mobile.keybagd.xpc" = mach-port-object;
+	};
+	"Label" = "com.apple.mobile.keybagd";
+	"TimeOut" = 30;
+	"OnDemand" = true;
+	"LastExitStatus" = 0;
+	"PID" = 45;
+1+0 records in
+1+0 records out
+16 bytes transferred in 0.000063 secs (254200 bytes/sec)
+FINAL_RW_PROBE=PASS
