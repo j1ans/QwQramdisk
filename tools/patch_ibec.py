@@ -76,7 +76,10 @@ def _locate_ios7(raw, finder, version):
     # retain x8.  Validate the complete local instruction pair before editing.
     csel = boot_ref + 16
     adrp = boot_ref - 4
-    if raw[adrp:adrp + 4] != bytes.fromhex("c8000090"):
+    # The page delta differs between the iPhone and iPad layouts (ADRP and
+    # ADRP with the sign bit set), while both instructions load x8.  Match the
+    # opcode and destination register instead of pinning the encoded delta.
+    if read_word(raw, adrp) & 0x9F00001F != 0x90000008:
         raise ValueError("iOS 7 boot-args ADRP context mismatch")
     if raw[csel:csel + 4] != bytes.fromhex("3401889a"):
         raise ValueError("iOS 7 boot-args CSEL context mismatch")
