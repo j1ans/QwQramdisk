@@ -38,7 +38,7 @@ def key_for(keys, image):
     raise ValueError(f"firmware keys do not contain {image}")
 
 
-def pzb_get(kit_root, url, member, output, atomic=False):
+def pzb_get(kit_root, url, member, output, atomic=False, quiet=False):
     output = Path(output)
     complete = output.with_name(output.name + ".complete")
     if output.is_file() and output.stat().st_size and (not atomic or complete.is_file()):
@@ -53,7 +53,7 @@ def pzb_get(kit_root, url, member, output, atomic=False):
             output.unlink()
     # pzb treats -o as a basename and writes into its current directory.
     run([kit_bin(kit_root, "pzb"), "-g", member, "-o", target.name, url],
-        cwd=output.parent)
+        cwd=output.parent, capture=quiet)
     if not target.is_file() or not target.stat().st_size:
         raise RuntimeError(f"pzb did not create {target}")
     if atomic:

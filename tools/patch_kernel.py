@@ -172,11 +172,11 @@ def locate(kernel):
         patches.extend([
             (uid_reject_branch,
              kernel[uid_reject_branch:uid_reject_branch + 4], NOP,
-             "allow iOS 7 UID diagnostics through the descriptor wrapper",
+             "allow iOS 7 UID handle through the descriptor wrapper",
              {}),
             (derived_reject_branch,
              kernel[derived_reject_branch:derived_reject_branch + 4], NOP,
-             "allow iOS 7 derived-key diagnostics through the descriptor wrapper",
+             "allow iOS 7 derived-key handles through the descriptor wrapper",
              {}),
         ])
         patches.append((

@@ -30,11 +30,3 @@ def select_profile(kit_root, version, require_dfu=False):
         raise ValueError(
             f"no unique iOS {version} profile for {device['PRODUCT']}/{device['MODEL']}")
     return matches[0], device
-
-
-def profile_for_version(version):
-    """Resolve an offline patcher version when the catalog has one device family."""
-    matches = [name for name, p in PROFILES.items() if p["version"] == version]
-    if len(matches) != 1:
-        raise ValueError(f"iOS version is unavailable or ambiguous: {version}")
-    return matches[0]

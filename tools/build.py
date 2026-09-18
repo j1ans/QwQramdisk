@@ -14,11 +14,11 @@ from .profiles import get_profile
 IRAM_URL = "https://github.com/LukeZGD/Legacy-iOS-Kit/files/14952123/iram.zip"
 
 
-def ensure_iram(kit_root, cache):
-    kit_root, cache = Path(kit_root), Path(cache)
-    saved = kit_root / "saved/iram.tar"
-    if saved.is_file():
-        return saved
+def ensure_iram(tools_root, cache):
+    tools_root, cache = Path(tools_root), Path(cache)
+    bundled = tools_root / "resources/iram.tar"
+    if bundled.is_file():
+        return bundled
     target = cache / "iram.tar"
     if target.is_file():
         return target
@@ -182,25 +182,16 @@ def build(kit_root, output, cache, project_root, profile="n53-12F70",
         hfs(hfsplus, ramdisk, "chmod", "755", target)
         hfs(hfsplus, ramdisk, "chown", "0:0", target)
 
-    # This arm64 diagnostic uses the exact 88-byte IOAES user-client ABI from
-    # the iOS 7 kernel.  It reads the effaceable LwVM locker and asks the
-    # kernel's derived 0x89B handle to decrypt it, without running the legacy
-    # armv7 NAND/HFS discovery code that crashes under A7 compatibility.
-    ios7_keydiag = assets / "ios7-keydiag"
     if ios7:
-        if not ios7_keydiag.is_file():
-            raise FileNotFoundError(f"missing iOS 7 diagnostic: {ios7_keydiag}")
-        hfs(hfsplus, ramdisk, "add", ios7_keydiag,
-            "usr/local/bin/ios7-keydiag")
-        hfs(hfsplus, ramdisk, "chmod", "755", "usr/local/bin/ios7-keydiag")
-        hfs(hfsplus, ramdisk, "chown", "0:0", "usr/local/bin/ios7-keydiag")
-
         # iOS 7 cannot create the usual patched keybagd copy on /mnt2 until
         # its system keybag is registered.  Keep the matching, path-relocated
         # daemon on md0 instead.  mount-mnt2 starts it after attaching the
         # data volume; the binary patch forces the data-volume system bag to
         # replace the restore ramdisk's already-present system handle.
-        ios7_keybagd_source = assets / f"keybagd.{profile}.raw"
+        # iPhone6,1 and iPhone6,2 share the same system keybagd for a given
+        # iOS build.  Name the embedded copy by build rather than board.
+        ios7_keybagd_source = (
+            assets / f"keybagd.{get_profile(profile)['build']}.raw")
         ios7_keybagd = dec / "keybagd.mnt2"
         if not ios7_keybagd_source.is_file():
             raise FileNotFoundError(
@@ -225,8 +216,6 @@ def build(kit_root, output, cache, project_root, profile="n53-12F70",
     if ios7:
         verify_hfs_file(hfsplus, ramdisk, "usr/local/bin/dropbear",
                         ios7_dropbear, dec / "verify-ios7-dropbear")
-        verify_hfs_file(hfsplus, ramdisk, "usr/local/bin/ios7-keydiag",
-                        ios7_keydiag, dec / "verify-ios7-keydiag")
         verify_hfs_file(hfsplus, ramdisk, "usr/local/libexec/keybagd.mnt2",
                         ios7_keybagd, dec / "verify-ios7-keybagd")
     else:
@@ -238,7 +227,7 @@ def build(kit_root, output, cache, project_root, profile="n53-12F70",
     verify_hfs_file(hfsplus, ramdisk, "bin/sh", compatible_shell,
                     dec / "verify-compatible-sh")
 
-    ticket = kit_root / "resources/sshrd/IM4M7"
+    ticket = kit_root / f"resources/sshrd/IM4M{get_profile(profile)['ticket']}"
     artifacts = {
         "iBSS.im4p": (ibss_raw, "ibss"),
         "iBEC.im4p": (ibec_raw, "ibec"),

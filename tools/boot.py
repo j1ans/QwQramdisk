@@ -7,6 +7,7 @@ import sys
 import time
 from pathlib import Path
 from .common import kit_bin, run, sha256
+from .profiles import get_profile
 
 
 def verify(output):
@@ -53,21 +54,26 @@ def _wait_dfu_query(irecovery, attempts=3, delay=2):
     return last_status, last_query
 
 
-def _pwn_retry(kit_root, output, irecovery, retries, delay):
-    darwin_a7 = os.uname().sysname == "Darwin" and os.uname().machine == "arm64"
-    if darwin_a7:
+def _pwn_retry(kit_root, output, irecovery, profile, retries, delay):
+    apple_silicon = os.uname().sysname == "Darwin" and os.uname().machine == "arm64"
+    exploit = profile["exploit"]
+    if exploit == "ipwnder" and apple_silicon:
         (output / "image3").mkdir(exist_ok=True)
         command = [str(kit_bin(kit_root, "ipwnder")), "-pv"]
-    else:
+    elif exploit == "ipwnder":
         command = [str(kit_bin(kit_root, "ipwnder")), "-p"]
+    elif exploit == "gaster":
+        command = [str(kit_bin(kit_root, "gaster")), "pwn"]
+    else:
+        raise ValueError(f"unsupported DFU exploit: {exploit}")
 
     last = None
     for attempt in range(1, retries + 1):
         result = subprocess.run(command, cwd=output)
         last = result.returncode
-        if result.returncode == 0 and darwin_a7:
-            # ipwnder_lite leaves A7 in a state that needs gaster's USB reset
-            # before irecovery can communicate with the pwned DFU interface.
+        if exploit == "gaster" or (result.returncode == 0 and apple_silicon):
+            # ipwnder_lite on A7 and gaster on A8 need a USB reset before
+            # irecovery can communicate with the pwned DFU interface.
             subprocess.run([str(kit_bin(kit_root, "gaster")), "reset"],
                            check=False)
         time.sleep(2)
@@ -94,13 +100,26 @@ def _pwn_retry(kit_root, output, irecovery, retries, delay):
 
 def boot(kit_root, output, port=2236, remote_port=22, usb_delay=4,
          retries=5):
-    output = Path(output).resolve(); verify(output)
+    output = Path(output).resolve()
+    manifest = verify(output)
+    profile = get_profile(manifest["profile"])
     irecovery = kit_bin(kit_root, "irecovery")
     query = run([irecovery, "-q"], capture=True)
-    if "CPID: 0x8960" not in query or "BDID: 0x02" not in query or "MODE: DFU" not in query:
-        raise RuntimeError("expected iPhone6,2 in DFU mode")
+    expected = (
+        f"CPID: 0x{profile['cpid']:04X}",
+        f"BDID: 0x{profile['bdid']:02X}",
+        f"PRODUCT: {profile['device']}",
+        f"MODEL: {profile['board']}",
+        "MODE: DFU",
+    )
+    missing = [item for item in expected if item.lower() not in query.lower()]
+    if missing:
+        raise RuntimeError(
+            f"expected {profile['device']}/{profile['board']} in DFU mode; "
+            f"device query does not match: {', '.join(missing)}")
     if "PWND" not in query:
-        query = _pwn_retry(kit_root, output, irecovery, retries, usb_delay)
+        query = _pwn_retry(
+            kit_root, output, irecovery, profile, retries, usb_delay)
     _irecovery_retry(irecovery, ["-f", output / "iBSS.im4p"],
                      "iBSS send", retries, usb_delay)
     time.sleep(max(8, usb_delay))

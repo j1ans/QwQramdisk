@@ -24,14 +24,10 @@ SYSTEM_VERSION=/mnt1/System/Library/CoreServices/SystemVersion.plist
 IOS7=0
 if [ -f "$SYSTEM_VERSION" ] && LC_ALL=C /usr/bin/grep -q '<string>7\.' "$SYSTEM_VERSION"; then
     IOS7=1
-    # The patched SecureRoot callback marks this diagnostic md0 root trusted,
+    # The patched SecureRoot callback marks this md0 root trusted,
     # so the normal firmware path derives the trusted 0x89B key table.  Do not
     # ping before the initial load: that call blocks while SEP is still in ROM.
     if [ "$DATA_MOUNTED" -eq 0 ]; then
-        if [ -x /usr/local/bin/ios7-keydiag ]; then
-            say 'reading iOS 7 key/locker state before SEP load'
-            /usr/local/bin/ios7-keydiag || say 'WARNING: pre-SEP key diagnostic failed'
-        fi
         mkdir -p /mnt2 || fail 'cannot create /mnt2'
         # Correct UID-mask preservation keeps the hardware slot alive.  A7
         # can mount the LwVM volume through AP IOAES before SEPI starts, but
@@ -42,10 +38,6 @@ if [ -f "$SYSTEM_VERSION" ] && LC_ALL=C /usr/bin/grep -q '<string>7\.' "$SYSTEM_
         "$SEP" --load "$FW" || fail 'SEP load failed'
         /bin/sleep 2
         "$SEP" --ping >/dev/null 2>&1 || fail 'SEP ping failed'
-        if [ -x /usr/local/bin/ios7-keydiag ]; then
-            say 'reading iOS 7 key/locker state after SEP load'
-            /usr/local/bin/ios7-keydiag || say 'WARNING: post-SEP key diagnostic failed'
-        fi
     fi
 elif ! "$SEP" --ping >/dev/null 2>&1; then
     say 'starting SEPI through ART_NO_ART'

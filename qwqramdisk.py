@@ -10,20 +10,22 @@ sys.path.insert(0, str(ROOT))
 from tools.boot import boot, ssh_command
 from tools.build import build
 from tools.common import kit_bin
-from tools.device import profile_for_version, select_profile
+from tools.device import select_profile
 from tools.fetch import fetch_components
 from tools.patch_ibec import patch as patch_ibec
 from tools.patch_ibss import patch as patch_ibss
 from tools.patch_kernel import patch as patch_kernel
-from tools.profiles import PROFILES
+from tools.profiles import PROFILES, validation_status
 
 
 def default_kit():
-    return str(Path.home() / "Legacy-iOS-kit")
+    return str(ROOT / "vendor")
 
 
 def add_kit(ap):
-    ap.add_argument("--kit", default=default_kit(), help="Legacy-iOS-Kit directory")
+    ap.add_argument(
+        "--kit", default=default_kit(), metavar="TOOLS_ROOT",
+        help="bundled tools root (default: repository vendor directory)")
 
 
 def add_version(ap):
@@ -75,16 +77,26 @@ def parser():
 def main():
     a = parser().parse_args()
     if a.command in ("versions", "profiles"):
-        for name, p in PROFILES.items():
-            if name in ("n53-12F70", "n53-11D201"):
-                tested = " (mnt2-rw-tested)"
-            else:
-                tested = ""
-            print(f"iOS {p['version']:5} build {p['build']:7}{tested}")
+        def version_key(item):
+            name, p = item
+            return (p["device"], tuple(int(x) for x in p["version"].split(".")),
+                    p["build"], name)
+        for name, p in sorted(PROFILES.items(), key=version_key):
+            print(f"{p['device']:9} {p['board']:5} iOS {p['version']:5} "
+                  f"build {p['build']:7} {validation_status(name)}")
     elif a.command == "doctor":
         for name in ("pzb", "img4", "hfsplus", "irecovery", "ipwnder",
                      "gaster", "iproxy", "sshpass"):
             print(f"{name}: {kit_bin(a.kit, name)}")
+        for name in ("IM4M7", "IM4M8", "sbplist.tar"):
+            path = Path(a.kit) / "resources/sshrd" / name
+            if not path.is_file():
+                raise FileNotFoundError(path)
+            print(f"{name}: {path}")
+        iram = Path(a.kit) / "resources/iram.tar"
+        if not iram.is_file():
+            raise FileNotFoundError(iram)
+        print(f"iram.tar: {iram}")
     elif a.command == "fetch":
         profile = resolve_profile(a)
         cache = a.cache or f"cache/{profile}"
@@ -112,11 +124,11 @@ def main():
     elif a.command == "ssh":
         ssh_command(a.kit, a.port, None, True)
     elif a.command == "patch-ibss":
-        patch_ibss(a.source, a.output, profile_for_version(a.version), a.manifest)
+        patch_ibss(a.source, a.output, a.version, a.manifest)
     elif a.command == "patch-ibec":
-        patch_ibec(a.source, a.output, profile_for_version(a.version), a.manifest)
+        patch_ibec(a.source, a.output, a.version, a.manifest)
     elif a.command == "patch-kernel":
-        patch_kernel(a.source, a.output, profile_for_version(a.version), a.manifest)
+        patch_kernel(a.source, a.output, a.version, a.manifest)
 
 
 if __name__ == "__main__":

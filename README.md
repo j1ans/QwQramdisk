@@ -1,7 +1,7 @@
 # QwQramdisk
 
-QwQramdisk builds and boots an iOS 7/8 arm64 SSH ramdisk for the global
-iPhone 5s (`iPhone6,2`, `n53ap`) and mounts the protected data volume at
+QwQramdisk builds and boots iOS 7/8 arm64 SSH ramdisks for the iPhone 5s,
+iPhone 6, and iPhone 6 Plus families and mounts the protected data volume at
 `/mnt2` read-write.
 
 The tool accepts the installed iOS version, detects the connected DFU device,
@@ -9,27 +9,28 @@ downloads only the required IPSW members, discovers patch locations from
 ARM64 patterns and cross-references, and produces bootable IMG4 components.
 It does not download the full IPSW or RootFS.
 
-Physical-device validation is complete for:
+Support and validation levels are deliberately separate:
 
-| Device | iOS | Build | SSH | SEP | systembag | `/mnt2` R/W |
-|---|---:|---:|---:|---:|---:|---:|
-| iPhone6,2 | 7.1.1 | 11D201 | PASS | PASS | PASS | PASS |
-| iPhone6,2 | 8.3 | 12F70 | PASS | PASS | PASS | PASS |
+| Device | Board | OS | Status |
+|---|---|---|---|
+| iPhone6,2 | n53ap | iOS 7.1.1 / 8.3 | `/mnt2` read-write device-tested |
+| iPhone6,1 | n51ap | iOS 7/8 | bootchain pattern-tested; 7.1.1 and 8.3 build-tested |
+| iPhone7,1 | n56ap | iOS 8 | experimental; pattern/build tests pass, unsupported on device |
+| iPhone7,2 | n61ap | iOS 8 | experimental; pattern/build tests pass, unsupported on device |
 
-Binary pattern regression also covers 7.0.6, 7.1, 7.1.2, 8.0, 8.1, 8.2,
-and 8.4.1. Those versions have not all been validated on physical devices.
+The cross-device regression covers iOS 7.0.6, 7.1, 7.1.1, 7.1.2, 8.0,
+8.1, 8.2, 8.3, and 8.4.1. A passing static/build test does not claim that
+SEP, keybagd, or `/mnt2` has been verified on that physical model.
 
 ## Requirements
 
-- macOS or Linux with Python 3
+- Apple Silicon macOS with Python 3
 - a C compiler for the fast LZSS encoder
-- [Legacy-iOS-Kit](https://github.com/LukeZGD/Legacy-iOS-Kit) at
-  `~/Legacy-iOS-kit`, or a custom path passed with `--kit`
-- an iPhone6,2 in DFU mode
+- an identified device in DFU mode
 - USB access; a serial cable is optional
 
-On Apple Silicon macOS, QwQramdisk uses Legacy-iOS-Kit's packaged `pzb`,
-`img4`, `hfsplus`, `irecovery`, `ipwnder`, `gaster`, `iproxy`, and `sshpass`.
+The repository includes every host tool and ramdisk resource used by the
+workflow. No Legacy-iOS-Kit checkout is required.
 
 ## Quick start
 
@@ -63,7 +64,7 @@ and delete probe under `/mnt2/tmp`.
 ## Commands
 
 ```text
-doctor          Check required Legacy-iOS-Kit tools
+doctor          Check the bundled host tools and ramdisk resources
 versions        List firmware profiles and physical-test status
 fetch           Download only the required IPSW members
 create          Build patched IMG4 components and the SSH ramdisk
@@ -128,7 +129,7 @@ even when `/chosen/uid-aes-key` is present.
 The kernel patcher works on raw arm64 Mach-O files or `complzss` payloads and
 preserves the appended monitor data when repacking.
 
-It locates serial diagnostics from the `debug` and `serial` boot-argument XREFs
+It locates the serial configuration from the `debug` and `serial` boot-argument XREFs
 instead of fixed offsets. The storage patches then split by OS generation:
 
 - iOS 8 permits the required 0x7D0 UID AES path and forces the existing
@@ -136,15 +137,8 @@ instead of fixed offsets. The storage patches then split by OS generation:
   restore ART here caused SEPART stalls or panics.
 - iOS 7 keeps the native persisted `ART_LOAD` decision. Forcing `ART_NO_ART`
   allowed SEP to ping but left the device data volume unreadable with HFS
-  error 83. The iOS 7 path instead trusts SecureRoot and permits the diagnostic
+  error 83. The iOS 7 path instead trusts SecureRoot and permits the required
   UID/derived handles through the user-client descriptor wrapper.
-
-### LwVM and the iOS 7 UID-mask failure
-
-The included diagnostic reads the effaceable LwVM locker and decrypts it with
-the kernel's derived 0x89B handle. Before the UID-mask fix, the device produced
-an incorrect 0x89B key and a plaintext UUID that did not match the media UUID.
-After the patch, the UUIDs matched byte-for-byte and `/mnt2` mounted normally.
 
 ### keybagd
 
@@ -186,23 +180,13 @@ or the original instruction differs.
 Patch manifests record source and output hashes, file offsets, virtual
 addresses, XREFs, original bytes, and replacements.
 
-Run the local regression set with:
-
-```sh
-python3 tests/regression.py cache/regression
-python3 -m unittest discover -s tests -p 'test_*.py'
-```
-
 ## Project status
 
-- Supported device profile: iPhone6,2 / n53ap
-- Physical `/mnt2` R/W validation: iOS 7.1.1 and iOS 8.3
-- Pattern regression: four iOS 7 builds and five iOS 8 builds
-- Other devices require their own firmware profile, unique-pattern validation,
-  and physical data-volume testing before they can be marked supported
-
-See [VALIDATION.md](VALIDATION.md) for artifact hashes and captured acceptance
-results.
+- iPhone6,2/n53: supported; physical `/mnt2` R/W validation on 7.1.1 and 8.3
+- iPhone6,1/n51: supported as build/pattern-tested; physical validation pending
+- iPhone7,1/n56 and iPhone7,2/n61: iOS 8 experimental builds only; unsupported
+  until physical SEP, keybagd, and `/mnt2` validation is completed
+- `versions` prints the validation level for every selectable profile
 
 ## Credits
 
@@ -211,7 +195,8 @@ results.
   based.
 - [Legacy-iOS-Kit](https://github.com/LukeZGD/Legacy-iOS-Kit) by LukeZGD —
   firmware selection, packaged device utilities, iRam integration, IMG4/HFS
-  tooling, and the established SSH ramdisk workflow.
+  tooling, the established SSH ramdisk workflow, and the bundled host-tool
+  builds copied from commit `bd921d51d8d84232d668adfd54e3e1e2edff9a33`.
 - [SSHRD_Script](https://github.com/verygenericname/SSHRD_Script) by Nathan /
   verygenericname — reference for modern checkm8 SSH ramdisk construction and
   boot sequencing.
@@ -222,8 +207,18 @@ results.
   inspiration for semantic ARM64 offset discovery through patterns and XREFs.
 - iPatcher and the legacy iBoot patching community — reference for the
   `iBoot-1940.x` BNCH dispatcher strategy.
-- checkm8, ipwnder, gaster, libirecovery, img4lib/img4tool, hfsplus, Dropbear,
-  and every upstream project distributed or invoked by Legacy-iOS-Kit.
+- [libfragmentzip](https://github.com/tihmstar/libfragmentzip) (`pzb`),
+  [img4lib](https://github.com/xerub/img4lib) (`img4`),
+  [daibutsuCFW/xpwn](https://github.com/LukeZGD/daibutsuCFW) (`hfsplus`),
+  [libirecovery](https://github.com/LukeeGD/libirecovery),
+  [ipwnder_lite](https://github.com/LukeZGD/ipwnder_lite/tree/old),
+  [gaster](https://github.com/LukeZGD/gaster),
+  [libusbmuxd](https://github.com/LukeeGD/libusbmuxd) (`iproxy`),
+  [sshpass](https://sourceforge.net/projects/sshpass/), checkm8, and Dropbear.
+
+Bundled file hashes are recorded in `vendor/SHA256SUMS`; the Legacy-iOS-Kit
+GPL text is retained under `vendor/licenses`. Each upstream component keeps
+its own copyright and license.
 
 QwQramdisk's original code covers the cross-version pattern patchers, the
 iOS 7 UID/SecureRoot/ART corrections, keybagd system-handle replacement, the

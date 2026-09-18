@@ -52,8 +52,9 @@ def run(args, cwd=None, capture=False):
     subprocess.run(args, cwd=cwd, check=True)
 
 
-def kit_bin(kit_root, name):
-    root = Path(kit_root).expanduser().resolve()
+def kit_bin(tools_root, name):
+    """Resolve a bundled host tool (the old function name is API-compatible)."""
+    root = Path(tools_root).expanduser().resolve()
     candidates = [
         root / "bin/macos/arm64" / name,
         root / "bin/macos" / name,
@@ -64,7 +65,7 @@ def kit_bin(kit_root, name):
     for path in candidates:
         if path.is_file():
             return path
-    raise FileNotFoundError(f"cannot find {name} under {root}/bin")
+    raise FileNotFoundError(f"cannot find bundled tool {name} under {root}/bin")
 
 
 def select_identity(build_manifest, device, board):
