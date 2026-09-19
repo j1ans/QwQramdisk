@@ -41,7 +41,8 @@ def resolve_profile(a, require_dfu=False):
         raise ValueError("iOS version is required, for example: create 8.3")
     profile, device = select_profile(a.kit, a.version, require_dfu)
     print(f"Detected {device['NAME']}: {device['PRODUCT']}/{device['MODEL']} "
-          f"({device['MODE']}), selected {profile}", file=sys.stderr)
+          f"({device['MODE']}), selected {profile} "
+          f"[{validation_status(profile)}]", file=sys.stderr)
     return profile
 
 
@@ -77,6 +78,8 @@ def parser():
 def main():
     a = parser().parse_args()
     if a.command in ("versions", "profiles"):
+        print("AUTO      any     iOS 7/8 experimental A7/A8/A8X auto-detection; "
+              "device-untested-use-at-own-risk")
         def version_key(item):
             name, p = item
             return (p["device"], tuple(int(x) for x in p["version"].split(".")),

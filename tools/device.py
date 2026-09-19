@@ -2,7 +2,11 @@
 import re
 
 from .common import kit_bin, run
-from .profiles import PROFILES
+from .fetch import get_json
+from .profiles import PROFILES, register_experimental_profile
+
+
+IPSW_API = "https://api.ipsw.me/v4/device/{device}?type=ipsw"
 
 
 def query_device(kit_root, require_dfu=False):
@@ -26,7 +30,18 @@ def select_profile(kit_root, version, require_dfu=False):
                if p["version"] == version
                and p["device"] == device["PRODUCT"]
                and p["board"].lower() == device["MODEL"].lower()]
-    if len(matches) != 1:
+    if len(matches) == 1:
+        return matches[0], device
+    if len(matches) > 1:
         raise ValueError(
-            f"no unique iOS {version} profile for {device['PRODUCT']}/{device['MODEL']}")
-    return matches[0], device
+            f"multiple iOS {version} profiles for {device['PRODUCT']}/{device['MODEL']}")
+
+    # No PRODUCT/MODEL allowlist: resolve the installed version for the DFU
+    # device and create an explicitly experimental profile for this command.
+    catalog = get_json(IPSW_API.format(device=device["PRODUCT"]))
+    firmwares = [fw for fw in catalog.get("firmwares", [])
+                 if fw.get("version") == version]
+    if len(firmwares) != 1:
+        raise ValueError(
+            f"no unique IPSW for {device['PRODUCT']}/{device['MODEL']} iOS {version}")
+    return register_experimental_profile(device, version, firmwares[0]), device

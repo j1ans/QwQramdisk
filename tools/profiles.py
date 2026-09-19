@@ -68,6 +68,42 @@ for model in ("n56", "n61"):
     PROFILES.update(_profiles_for(model, builds))
 
 
+def _hex_field(value, label):
+    try:
+        return int(str(value), 0)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"invalid {label} reported by irecovery: {value!r}") from exc
+
+
+def register_experimental_profile(device, version, firmware):
+    """Register an auto-detected A7/A8/A8X profile for this process."""
+    if version.split(".", 1)[0] not in {"7", "8"}:
+        raise ValueError("experimental auto-detection is limited to iOS 7 and 8")
+    cpid = _hex_field(device["CPID"], "CPID")
+    bdid = _hex_field(device["BDID"], "BDID")
+    if cpid not in {0x8960, 0x7000, 0x7001}:
+        raise ValueError(
+            f"CPID 0x{cpid:X} is not an iOS 7/8 arm64 A7/A8/A8X device")
+    board = device["MODEL"].lower()
+    short_board = board[:-2] if board.endswith("ap") else board
+    build = firmware["buildid"]
+    name = f"{short_board}-{build}"
+    PROFILES[name] = {
+        "name": name,
+        "device": device["PRODUCT"],
+        "board": board,
+        "display_name": device.get("NAME", device["PRODUCT"]),
+        "cpid": cpid,
+        "bdid": bdid,
+        "ticket": 7 if cpid == 0x8960 else 8,
+        "exploit": "ipwnder" if cpid == 0x8960 else "gaster",
+        "version": version,
+        "build": build,
+        "experimental": True,
+    }
+    return name
+
+
 def get_profile(name):
     try:
         return PROFILES[name]
@@ -80,6 +116,8 @@ def validation_status(profile):
     """Return the strongest completed validation without overstating support."""
     name = profile["name"] if isinstance(profile, dict) else profile
     get_profile(name)
+    if get_profile(name).get("experimental"):
+        return "experimental-device-untested-use-at-own-risk"
     model, build = name.split("-", 1)
     if name in ("n53-11D201", "n53-12F70"):
         return "device-tested"

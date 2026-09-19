@@ -33,6 +33,14 @@ physical iPad has completed the boot, SEP, keybagd, and `/mnt2` workflow yet.
 Use these targets at your own risk; this status will be updated when device
 test reports are available.
 
+There is no PRODUCT/MODEL allowlist. When a connected iOS 7/8 arm64 device is
+not in the validated table, QwQramdisk resolves its IPSW from the detected
+PRODUCT, MODEL, CPID, and BDID and creates an experimental profile at runtime.
+This opens the workflow to every A7, A8, and A8X model, including the iPad mini
+2/3 and iPod touch 6. Auto-detected profiles are explicitly reported as
+`experimental-device-untested-use-at-own-risk`; pattern matching still fails
+closed if that firmware has an unknown or ambiguous layout.
+
 ## Requirements
 
 - Apple Silicon macOS with Python 3
@@ -88,8 +96,9 @@ patch-kernel    Pattern-patch a decrypted kernelcache
 ```
 
 `create` and `boot` read PRODUCT and MODEL from `irecovery`. The user supplies
-only the installed iOS version. An explicit internal profile may still be used
-for regression and development.
+only the installed iOS version. A known device uses its validated profile; any
+other iOS 7/8 A7/A8/A8X device receives an experimental runtime profile. An
+explicit internal profile may still be used for regression and development.
 
 ## How the `/mnt2` fix works
 
@@ -205,6 +214,8 @@ addresses, XREFs, original bytes, and replacements.
   12D508, 12F69, and 12H321 bootchains passed pattern validation
 - iPad support has not yet been device-tested; use it at your own risk and
   report successful boot and `/mnt2` results so this status can be updated
+- every other iOS 7/8 A7/A8/A8X PRODUCT/MODEL is auto-detected without a
+  model allowlist and marked experimental; physical validation is pending
 - `versions` prints the validation level for every selectable profile
 
 ## Credits
