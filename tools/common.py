@@ -55,13 +55,20 @@ def run(args, cwd=None, capture=False):
 def kit_bin(tools_root, name):
     """Resolve a bundled host tool (the old function name is API-compatible)."""
     root = Path(tools_root).expanduser().resolve()
-    candidates = [
-        root / "bin/macos/arm64" / name,
-        root / "bin/macos" / name,
-        root / "bin/linux" / os.uname().machine / name,
-        root / "bin/linux/x86_64" / name,
-        root / "bin/linux/arm64" / name,
-    ]
+    system, machine = os.uname().sysname, os.uname().machine
+    if system == "Darwin":
+        arch = "arm64" if machine == "arm64" else "x86_64"
+        candidates = [
+            root / "bin/macos" / arch / name,
+            root / "bin/macos" / name,
+        ]
+    else:
+        arch = "arm64" if machine in {"arm64", "aarch64"} else machine
+        candidates = [
+            root / "bin/linux" / arch / name,
+            root / "bin/linux/x86_64" / name,
+            root / "bin/linux/arm64" / name,
+        ]
     for path in candidates:
         if path.is_file():
             return path

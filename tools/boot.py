@@ -61,7 +61,10 @@ def _pwn_retry(kit_root, output, irecovery, profile, retries, delay):
         (output / "image3").mkdir(exist_ok=True)
         command = [str(kit_bin(kit_root, "ipwnder")), "-pv"]
     elif exploit == "ipwnder":
-        command = [str(kit_bin(kit_root, "ipwnder")), "-p"]
+        # Legacy-iOS-Kit uses gaster for A7 on Intel Macs; ipwnder_lite is
+        # selected only on Apple Silicon.
+        exploit = "gaster"
+        command = [str(kit_bin(kit_root, "gaster")), "pwn"]
     elif exploit == "gaster":
         command = [str(kit_bin(kit_root, "gaster")), "pwn"]
     else:

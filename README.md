@@ -43,13 +43,15 @@ closed if that firmware has an unknown or ambiguous layout.
 
 ## Requirements
 
-- Apple Silicon macOS with Python 3
+- Intel or Apple Silicon macOS with Python 3
 - a C compiler for the fast LZSS encoder
 - an identified device in DFU mode
 - USB access; a serial cable is optional
 
-The repository includes every host tool and ramdisk resource used by the
-workflow. No Legacy-iOS-Kit checkout is required.
+The repository includes native x86_64 and arm64 copies of every macOS host
+tool and all ramdisk resources used by the workflow. The correct binary set is
+selected from the host architecture, so Rosetta is not required. No separate
+Legacy-iOS-Kit checkout is required.
 
 ## Quick start
 
