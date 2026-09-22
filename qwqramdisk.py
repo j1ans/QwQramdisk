@@ -7,6 +7,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
+from tools.activation import dump_activation
 from tools.boot import boot, ssh_command
 from tools.build import build
 from tools.common import kit_bin
@@ -63,8 +64,17 @@ def parser():
                    help="seconds between USB send/command stages (default: 4)")
     p.add_argument("--retries", type=int, default=5,
                    help="irecovery attempts per send/command (default: 5)")
+    p.add_argument("--dump-activation", nargs="?", const="", metavar="TAR",
+                   help="after boot, dump activation records into a "
+                        "Legacy-iOS-Kit compatible tar (default: "
+                        "output/<profile>/activation-<version>-<build>.tar)")
     p = sub.add_parser("mount", help="run the one-command /mnt2 mount over SSH"); add_kit(p)
     p.add_argument("--port", type=int, default=2236)
+    p = sub.add_parser("dump-activation",
+                       help="dump activation records from an already-booted ramdisk")
+    add_kit(p)
+    p.add_argument("--port", type=int, default=2236)
+    p.add_argument("--out", help="output tar path (default: ./activation-<version>-<build>.tar)")
     p = sub.add_parser("ssh", help="open an interactive root shell"); add_kit(p)
     p.add_argument("--port", type=int, default=2236)
     for name, help_text in [("patch-ibss", "patch a decrypted iBSS"),
@@ -73,6 +83,16 @@ def parser():
         p = sub.add_parser(name, help=help_text); p.add_argument("source"); p.add_argument("output")
         p.add_argument("--version", default="8.3"); p.add_argument("--manifest")
     return ap
+
+
+def _print_activation(path, info):
+    print(f"Activation records: {len(info['activation_records'])} "
+          f"({', '.join(info['activation_records'])})")
+    print(f"Collected {info['record_files']} files from {info['source']} "
+          f"(iOS {info['version']}-{info['build']}) "
+          f"+ {len(info['supplementary'])} supplementary "
+          f"({', '.join(info['supplementary'])})")
+    print(f"Saved: {path}")
 
 
 def main():
@@ -121,9 +141,18 @@ def main():
             raise SystemExit("ramdisk booted but SSH did not become ready; inspect serial and iproxy.log")
         print(f"SSH ready: ./qwqramdisk ssh --port {a.port}")
         print(f"Mount /mnt2: ./qwqramdisk mount --port {a.port}")
+        print(f"Dump activation records: ./qwqramdisk dump-activation --port {a.port}")
+        if a.dump_activation is not None:
+            path, info = dump_activation(a.kit, a.port,
+                                         out=a.dump_activation or None,
+                                         output_dir=output)
+            _print_activation(path, info)
     elif a.command == "mount":
         raise SystemExit(ssh_command(
             a.kit, a.port, "/usr/local/bin/mount-mnt2"))
+    elif a.command == "dump-activation":
+        path, info = dump_activation(a.kit, a.port, out=a.out)
+        _print_activation(path, info)
     elif a.command == "ssh":
         ssh_command(a.kit, a.port, None, True)
     elif a.command == "patch-ibss":
