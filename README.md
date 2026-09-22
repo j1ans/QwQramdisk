@@ -113,6 +113,25 @@ so its `tar` and `ls -l` crash on the iOS 7 restore ramdisk. Nothing is
 therefore archived on the device: `find -ls` provides the listing, `scp`
 moves the files, and the tar is assembled and verified on the host.
 
+## Arm or clear the springboard device lock
+
+```sh
+./qwqramdisk lock-wipe                          # arm the wipe path
+./qwqramdisk remove-disabled                    # clear the disabled state
+```
+
+Both edit `/mnt2/mobile/Library/Preferences/com.apple.springboard.plist` on
+the host (pull, mutate with plistlib, push back with the original 0600
+mobile:mobile mode, keeping an on-device `.bak-<timestamp>` copy) and
+re-read the pushed file to verify before reporting success.
+
+`lock-wipe` sets `SBDeviceLockFailedAttempts=721` and
+`SBDeviceWipeEnabled=true`; on the next normal boot springboard sees the
+failed-attempt counter far past the wipe threshold with wiping enabled.
+`remove-disabled` sets the counter to `-9999`, deletes every other
+`SBDevice*` key, and removes all `LockoutState*` files from
+`/mnt2/mobile/Library/SpringBoard`.
+
 ## Commands
 
 ```text
@@ -124,6 +143,8 @@ boot            Exploit DFU, send the components, and start USB/SSH forwarding
 mount           Run the verified /mnt2 mount workflow over SSH
 dump-activation Package the activation Lockdown folder into a tar
 restore-activation Write a dumped tar back onto the device
+lock-wipe       Arm the springboard wipe lock (721 attempts, wipe enabled)
+remove-disabled Clear the disabled state (-9999 attempts, drop SBDevice* keys)
 ssh             Open an interactive root shell
 patch-ibss      Pattern-patch a decrypted iBSS
 patch-ibec      Pattern-patch a decrypted iBEC

@@ -17,6 +17,7 @@ from tools.patch_ibec import patch as patch_ibec
 from tools.patch_ibss import patch as patch_ibss
 from tools.patch_kernel import patch as patch_kernel
 from tools.profiles import PROFILES, validation_status
+from tools.springboard import lock_wipe, remove_disabled
 
 
 def default_kit():
@@ -80,6 +81,16 @@ def parser():
     add_kit(p)
     p.add_argument("--port", type=int, default=2236)
     p.add_argument("tar", help="tar produced by dump-activation")
+    p = sub.add_parser("lock-wipe",
+                       help="arm the springboard wipe lock "
+                            "(SBDeviceLockFailedAttempts=721, SBDeviceWipeEnabled=true)")
+    add_kit(p)
+    p.add_argument("--port", type=int, default=2236)
+    p = sub.add_parser("remove-disabled",
+                       help="clear the disabled state "
+                            "(attempts=-9999, drop SBDevice* keys, delete LockoutState* files)")
+    add_kit(p)
+    p.add_argument("--port", type=int, default=2236)
     p = sub.add_parser("ssh", help="open an interactive root shell"); add_kit(p)
     p.add_argument("--port", type=int, default=2236)
     for name, help_text in [("patch-ibss", "patch a decrypted iBSS"),
@@ -162,6 +173,16 @@ def main():
               f"({len(info['activation_records'])} activation record(s))")
         for backup in info["backups"]:
             print(f"On-device backup: {backup}")
+    elif a.command in ("lock-wipe", "remove-disabled"):
+        report = (lock_wipe(a.kit, a.port) if a.command == "lock-wipe"
+                  else remove_disabled(a.kit, a.port))
+        for key, value in report["set"].items():
+            print(f"{key} = {value!r}")
+        for key in report["removed"]:
+            print(f"removed key {key}")
+        for name in report.get("lockout_files_deleted", []):
+            print(f"deleted /mnt2/mobile/Library/SpringBoard/{name}")
+        print(f"On-device backup: {report['backup']}")
     elif a.command == "ssh":
         ssh_command(a.kit, a.port, None, True)
     elif a.command == "patch-ibss":
