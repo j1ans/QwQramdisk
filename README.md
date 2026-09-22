@@ -82,39 +82,36 @@ For iOS 7.1.1, use the same commands with `7.1.1`:
 helper reads the existing system keybag and performs a create, read, compare,
 and delete probe under `/mnt2/tmp`.
 
-## Dump activation records
+## Dump and restore activation records
 
 ```sh
 ./qwqramdisk boot 7.1.1 --dump-activation        # boot, then dump in one run
 ./qwqramdisk dump-activation                     # ramdisk already booted
+./qwqramdisk restore-activation activation-7.1.1-11D201.tar
 ```
 
-Both produce a Legacy-iOS-Kit compatible `activation-<version>-<build>.tar`
-(by default under `output/<profile>/` for `boot`, in the current directory
-for `dump-activation`; pass a path to override). The tar carries the
-`private/var/...` staging layout used by Legacy-iOS-Kit's
-`device_dumpactivation`, so it can be dropped straight into a
-`Legacy-iOS-Kit/saved/<device>/` folder for custom-IPSW stitching:
+The dump is simply the device's activation folder — activation record,
+`data_ark.plist`, device keys, escrow and pair records — packaged as a
+`Lockdown/` tree with the real on-device modes and ownership
+(`activation-<version>-<build>.tar`, by default under `output/<profile>/`
+for `boot` and in the current directory for `dump-activation`).
 
-- `private/var/root/Library/Lockdown/**` — activation record, `data_ark.plist`,
-  device keys, escrow and pair records (root:wheel, real on-device modes)
-- `private/var/mobile/Media/iTunes_Control/iTunes/IC-Info.sidv` and
-  `private/var/mobile/Library/FairPlay/iTunes_Control/iTunes/IC-Info.sisv`
-  (mobile 501:501)
-- `private/var/wireless/Library/Preferences/com.apple.commcenter.plist`
-  (wireless 25:25)
+`restore-activation` writes the folder back to
+`/mnt2/root/Library/Lockdown`, copying the live folder to
+`Lockdown.bak-<timestamp>` on the device first. Every restored file is
+size-checked against the tar before the command reports success.
 
 iOS 7 records are read from `/mnt2/root/Library/Lockdown` and iOS 8 records
-from `/mnt2/mobile/Library/mad`, both normalized into
-`private/var/root/Library/Lockdown`; the location suggested by the installed
-version is preferred and the other is used as a fallback when it is the one
-holding a `*_record.plist`. A dump without any `*_record.plist` fails with an
-unactivated-device hint instead of writing a useless tar.
+from `/mnt2/mobile/Library/mad`, both packaged under the `Lockdown/` name;
+the location suggested by the installed version is preferred and the other
+is used as a fallback when it is the one holding a `*_record.plist`. A dump
+or restore without any `*_record.plist` fails with an unactivated-device
+hint instead of moving a useless tree around.
 
 The iRam userland in the ramdisk is linked against iOS 9+ libSystem symbols,
 so its `tar` and `ls -l` crash on the iOS 7 restore ramdisk. Nothing is
 therefore archived on the device: `find -ls` provides the listing, `scp`
-pulls the files, and the tar is assembled and verified on the host.
+moves the files, and the tar is assembled and verified on the host.
 
 ## Commands
 
@@ -125,7 +122,8 @@ fetch           Download only the required IPSW members
 create          Build patched IMG4 components and the SSH ramdisk
 boot            Exploit DFU, send the components, and start USB/SSH forwarding
 mount           Run the verified /mnt2 mount workflow over SSH
-dump-activation Dump activation records into a Legacy-iOS-Kit compatible tar
+dump-activation Package the activation Lockdown folder into a tar
+restore-activation Write a dumped tar back onto the device
 ssh             Open an interactive root shell
 patch-ibss      Pattern-patch a decrypted iBSS
 patch-ibec      Pattern-patch a decrypted iBEC

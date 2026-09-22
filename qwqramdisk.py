@@ -7,7 +7,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
-from tools.activation import dump_activation
+from tools.activation import dump_activation, restore_activation
 from tools.boot import boot, ssh_command
 from tools.build import build
 from tools.common import kit_bin
@@ -75,6 +75,11 @@ def parser():
     add_kit(p)
     p.add_argument("--port", type=int, default=2236)
     p.add_argument("--out", help="output tar path (default: ./activation-<version>-<build>.tar)")
+    p = sub.add_parser("restore-activation",
+                       help="restore a dumped activation tar back onto the device")
+    add_kit(p)
+    p.add_argument("--port", type=int, default=2236)
+    p.add_argument("tar", help="tar produced by dump-activation")
     p = sub.add_parser("ssh", help="open an interactive root shell"); add_kit(p)
     p.add_argument("--port", type=int, default=2236)
     for name, help_text in [("patch-ibss", "patch a decrypted iBSS"),
@@ -89,9 +94,7 @@ def _print_activation(path, info):
     print(f"Activation records: {len(info['activation_records'])} "
           f"({', '.join(info['activation_records'])})")
     print(f"Collected {info['record_files']} files from {info['source']} "
-          f"(iOS {info['version']}-{info['build']}) "
-          f"+ {len(info['supplementary'])} supplementary "
-          f"({', '.join(info['supplementary'])})")
+          f"(iOS {info['version']}-{info['build']})")
     print(f"Saved: {path}")
 
 
@@ -153,6 +156,12 @@ def main():
     elif a.command == "dump-activation":
         path, info = dump_activation(a.kit, a.port, out=a.out)
         _print_activation(path, info)
+    elif a.command == "restore-activation":
+        path, info = restore_activation(a.kit, a.port, a.tar)
+        print(f"Restored {info['restored']} files from {path} "
+              f"({len(info['activation_records'])} activation record(s))")
+        for backup in info["backups"]:
+            print(f"On-device backup: {backup}")
     elif a.command == "ssh":
         ssh_command(a.kit, a.port, None, True)
     elif a.command == "patch-ibss":
