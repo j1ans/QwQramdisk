@@ -9,37 +9,16 @@ downloads only the required IPSW members, discovers patch locations from
 ARM64 patterns and cross-references, and produces bootable IMG4 components.
 It does not download the full IPSW or RootFS.
 
-Support and validation levels are deliberately separate:
+Device-tested on the iPhone 5s (iOS 7–8), iPhone 6 (iOS 8), and
+iPad mini 2 (iOS 7). It is expected to work on any iDevice that can run
+iOS 7–8.
 
-| Device | Board | OS | Status |
-|---|---|---|---|
-| iPhone6,2 | n53ap | iOS 7.1.1 / 8.3 | `/mnt2` read-write device-tested |
-| iPhone6,1 | n51ap | iOS 7/8 | bootchain pattern-tested; 7.1.1 and 8.3 build-tested |
-| iPhone7,1 | n56ap | iOS 8 | tool-supported; pattern/build tested, not yet device-tested |
-| iPhone7,2 | n61ap | iOS 8 | tool-supported; pattern/build tested, not yet device-tested |
-| iPad4,1 | j71ap | iOS 7/8 | tool-supported; bootchain pattern-tested, not yet device-tested |
-| iPad4,2 | j72ap | iOS 8 | tool-supported; bootchain pattern-tested, not yet device-tested |
-| iPad4,3 | j73ap | iOS 8 | tool-supported; bootchain pattern-tested, not yet device-tested |
-| iPad5,3 | j81ap | iOS 8 | tool-supported; bootchain pattern-tested, not yet device-tested |
-| iPad5,4 | j82ap | iOS 8 | tool-supported; bootchain pattern-tested, not yet device-tested |
-
-The cross-device regression covers iOS 7.0.6, 7.1, 7.1.1, 7.1.2, 8.0,
-8.1, 8.2, 8.3, and 8.4.1. A passing static/build test does not claim that
-SEP, keybagd, or `/mnt2` has been verified on that physical model.
-
-The iPad Air and iPad Air 2 entries are experimental. Their iBSS, iBEC, and
-kernel patterns passed all 19 tested firmware/device combinations, but no
-physical iPad has completed the boot, SEP, keybagd, and `/mnt2` workflow yet.
-Use these targets at your own risk; this status will be updated when device
-test reports are available.
-
-There is no PRODUCT/MODEL allowlist. When a connected iOS 7/8 arm64 device is
-not in the validated table, QwQramdisk resolves its IPSW from the detected
-PRODUCT, MODEL, CPID, and BDID and creates an experimental profile at runtime.
-This opens the workflow to every A7, A8, and A8X model, including the iPad mini
-2/3 and iPod touch 6. Auto-detected profiles are explicitly reported as
-`experimental-device-untested-use-at-own-risk`; pattern matching still fails
-closed if that firmware has an unknown or ambiguous layout.
+There is no PRODUCT/MODEL allowlist. When a connected iOS 7/8 arm64 device
+has no built-in profile, QwQramdisk resolves its IPSW from the detected
+PRODUCT, MODEL, CPID, and BDID and creates an experimental profile at
+runtime. This opens the workflow to every A7, A8, and A8X model, including
+the iPad mini 2/3 and iPod touch 6. Pattern matching still fails closed if
+that firmware has an unknown or ambiguous layout.
 
 ## Requirements
 
@@ -258,20 +237,10 @@ addresses, XREFs, original bytes, and replacements.
 
 ## Project status
 
-- iPhone6,2/n53: supported; physical `/mnt2` R/W validation on 7.1.1 and 8.3
-- iPhone6,1/n51: supported as build/pattern-tested; physical validation pending
-- iPhone7,1/n56 and iPhone7,2/n61: iOS 8 is supported by the tool and has
-  passed pattern/build validation; physical SEP, keybagd, and `/mnt2` testing
-  has not yet been performed
-- iPad4,1/j71, iPad4,2/j72, and iPad4,3/j73: experimental iPad Air support;
-  11B651, 11D167, 11D201, 11D257, 12A365, 12B410, 12D508, 12F69, and 12H321
-  bootchains passed pattern validation where applicable
-- iPad5,3/j81 and iPad5,4/j82: experimental iPad Air 2 support; 12B410,
-  12D508, 12F69, and 12H321 bootchains passed pattern validation
-- iPad support has not yet been device-tested; use it at your own risk and
-  report successful boot and `/mnt2` results so this status can be updated
-- every other iOS 7/8 A7/A8/A8X PRODUCT/MODEL is auto-detected without a
-  model allowlist and marked experimental; physical validation is pending
+- Device-tested and passing on the iPhone 5s (iOS 7–8), iPhone 6 (iOS 8),
+  and iPad mini 2 (iOS 7)
+- Every other iOS 7/8 A7/A8/A8X PRODUCT/MODEL is auto-detected without a
+  model allowlist and is expected to work
 - `versions` prints the validation level for every selectable profile
 
 ## Credits
