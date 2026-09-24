@@ -28,7 +28,7 @@ that firmware has an unknown or ambiguous layout.
 ## Requirements
 
 - Intel/Apple Silicon macOS, or x86_64/arm64 Linux, with Python 3
-- a C compiler for the fast LZSS encoder
+- a C compiler is optional (it accelerates LZSS compression)
 - an identified device in DFU mode
 - USB access; a serial cable is optional
 
@@ -38,25 +38,20 @@ set is selected from the operating system and architecture, so Rosetta or a
 separate Legacy-iOS-Kit checkout is not required. Unsupported operating systems
 and CPU architectures fail closed instead of trying an incompatible binary.
 
-On Linux, install the runtime libraries and OpenSSH client provided by your
-distribution. Debian/Ubuntu users can use:
+On Debian/Ubuntu Linux, install Python and the OpenSSH client:
 
 ```sh
-sudo apt install python3 openssh-client libcurl4 libusb-1.0-0 libreadline8
+sudo apt install python3 openssh-client
 ```
 
-For non-root DFU access, install the bundled udev rule, reload udev, then
+Install the same permissive Apple USB rule used by Legacy-iOS-Kit once, then
 unplug and reconnect the device:
 
 ```sh
-sudo install -m 0644 contrib/udev/39-qwqramdisk.rules /etc/udev/rules.d/
+sudo install -m 0644 contrib/udev/99-libirecovery.rules /etc/udev/rules.d/
 sudo udevadm control --reload-rules
 sudo udevadm trigger
 ```
-
-Some distributions do not create a `plugdev` group. The rule also carries the
-systemd-logind `uaccess` tag, which is sufficient for an active local session;
-headless users should create/join `plugdev` or adapt the group in the rule.
 
 ## Quick start
 

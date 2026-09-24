@@ -157,11 +157,11 @@ def main():
                     raise RuntimeError(
                         f"bundled Linux tool cannot start: {name}: {exc}") from exc
             print("linux tool startup probes: passed")
-            rule = ROOT / "contrib/udev/39-qwqramdisk.rules"
+            rule = ROOT / "contrib/udev/99-libirecovery.rules"
             installed = any(Path(path).is_file() for path in (
-                "/etc/udev/rules.d/39-qwqramdisk.rules",
-                "/usr/lib/udev/rules.d/39-qwqramdisk.rules",
-                "/lib/udev/rules.d/39-qwqramdisk.rules",
+                "/etc/udev/rules.d/99-libirecovery.rules",
+                "/usr/lib/udev/rules.d/99-libirecovery.rules",
+                "/lib/udev/rules.d/99-libirecovery.rules",
             ))
             print(f"udev rule: {'installed' if installed else 'not installed'}")
             if not installed:
