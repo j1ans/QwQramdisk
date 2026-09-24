@@ -6,6 +6,7 @@ from unittest import mock
 
 from tools.common import host_platform, kit_bin
 from tools.boot import _pwn_command
+from qwqramdisk import LINUX_UDEV_RULE, ensure_linux_udev_rule
 
 
 class HostPlatformTests(unittest.TestCase):
@@ -58,6 +59,22 @@ class HostPlatformTests(unittest.TestCase):
             self.assertEqual(exploit, "gaster")
             self.assertEqual(command, ["/tools/gaster", "pwn"])
             self.assertFalse(apple_silicon)
+
+    def test_embedded_linux_rule_matches_legacy_ios_kit(self):
+        self.assertEqual(
+            LINUX_UDEV_RULE,
+            'SUBSYSTEM=="usb", ATTR{idVendor}=="05ac", '
+            'MODE:="0666", TAG+="uaccess"\n')
+        self.assertNotIn("GROUP=", LINUX_UDEV_RULE)
+
+    def test_existing_linux_rule_is_not_replaced(self):
+        fake_path = mock.Mock()
+        fake_path.is_file.return_value = True
+        fake_path.stat.return_value.st_size = 1
+        with mock.patch("qwqramdisk.LINUX_UDEV_PATH", fake_path), \
+                mock.patch("qwqramdisk.subprocess.run") as run:
+            self.assertFalse(ensure_linux_udev_rule())
+        run.assert_not_called()
 
 
 if __name__ == "__main__":

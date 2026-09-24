@@ -44,15 +44,6 @@ On Debian/Ubuntu Linux, install Python and the OpenSSH client:
 sudo apt install python3 openssh-client
 ```
 
-Install the same permissive Apple USB rule used by Legacy-iOS-Kit once, then
-unplug and reconnect the device:
-
-```sh
-sudo install -m 0644 contrib/udev/99-libirecovery.rules /etc/udev/rules.d/
-sudo udevadm control --reload-rules
-sudo udevadm trigger
-```
-
 ## Quick start
 
 ```sh

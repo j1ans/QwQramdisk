@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -19,6 +20,48 @@ from tools.patch_ibss import patch as patch_ibss
 from tools.patch_kernel import patch as patch_kernel
 from tools.profiles import PROFILES, validation_status
 from tools.springboard import lock_wipe, remove_disabled
+
+
+LINUX_UDEV_PATH = Path("/etc/udev/rules.d/99-libirecovery.rules")
+LINUX_UDEV_RULE = (
+    'SUBSYSTEM=="usb", ATTR{idVendor}=="05ac", '
+    'MODE:="0666", TAG+="uaccess"\n'
+)
+
+
+def ensure_linux_udev_rule():
+    """Install the libirecovery USB rule on Linux, as Legacy-iOS-Kit does."""
+    try:
+        if LINUX_UDEV_PATH.is_file() and LINUX_UDEV_PATH.stat().st_size:
+            return False
+    except OSError:
+        pass
+
+    elevated = []
+    if os.geteuid() != 0:
+        sudo = shutil.which("sudo")
+        if not sudo:
+            raise FileNotFoundError(
+                "sudo is required once to install the Linux USB rule")
+        elevated = [sudo]
+    udevadm = shutil.which("udevadm")
+    if not udevadm:
+        raise FileNotFoundError(
+            "udevadm is required to install the Linux USB rule")
+
+    print("Setting up Linux USB access (password may be requested)...",
+          file=sys.stderr)
+    subprocess.run(
+        [*elevated, "mkdir", "-p", str(LINUX_UDEV_PATH.parent)],
+        check=True)
+    subprocess.run(
+        [*elevated, "tee", str(LINUX_UDEV_PATH)], input=LINUX_UDEV_RULE,
+        text=True, stdout=subprocess.DEVNULL, check=True)
+    subprocess.run(
+        [*elevated, udevadm, "control", "--reload-rules"], check=True)
+    subprocess.run(
+        [*elevated, udevadm, "trigger", "-s", "usb"], check=True)
+    return True
 
 
 def default_kit():
@@ -112,6 +155,9 @@ def _print_activation(path, info):
 
 def main():
     a = parser().parse_args()
+    platform_name, _ = host_platform()
+    if platform_name == "linux":
+        ensure_linux_udev_rule()
     if a.command in ("versions", "profiles"):
         print("AUTO      any     iOS 7/8 experimental A7/A8/A8X auto-detection; "
               "device-untested-use-at-own-risk")
@@ -157,16 +203,7 @@ def main():
                     raise RuntimeError(
                         f"bundled Linux tool cannot start: {name}: {exc}") from exc
             print("linux tool startup probes: passed")
-            rule = ROOT / "contrib/udev/99-libirecovery.rules"
-            installed = any(Path(path).is_file() for path in (
-                "/etc/udev/rules.d/99-libirecovery.rules",
-                "/usr/lib/udev/rules.d/99-libirecovery.rules",
-                "/lib/udev/rules.d/99-libirecovery.rules",
-            ))
-            print(f"udev rule: {'installed' if installed else 'not installed'}")
-            if not installed:
-                print("WARNING: install the bundled udev rule before using "
-                      f"DFU as a non-root user: {rule}", file=sys.stderr)
+            print(f"udev rule: {LINUX_UDEV_PATH}")
             if not Path("/dev/bus/usb").exists():
                 print("WARNING: /dev/bus/usb is unavailable; USB passthrough "
                       "may be missing", file=sys.stderr)
