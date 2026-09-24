@@ -1,5 +1,10 @@
 # QwQramdisk
 
+> **Linux support is experimental.** The complete workflow is implemented for
+> x86_64 and arm64 Linux hosts, but DFU exploitation and USB re-enumeration have
+> not yet received the same physical-device coverage as macOS. Keep a macOS host
+> available when working with irreplaceable device data.
+
 QwQramdisk builds and boots iOS 7/8 arm64 SSH ramdisks for the iPhone 5s,
 iPhone 6, iPhone 6 Plus, iPad Air, and iPad Air 2 families and mounts the
 protected data volume at `/mnt2` read-write.
@@ -22,15 +27,36 @@ that firmware has an unknown or ambiguous layout.
 
 ## Requirements
 
-- Intel or Apple Silicon macOS with Python 3
+- Intel/Apple Silicon macOS, or x86_64/arm64 Linux, with Python 3
 - a C compiler for the fast LZSS encoder
 - an identified device in DFU mode
 - USB access; a serial cable is optional
 
-The repository includes native x86_64 and arm64 copies of every macOS host
-tool and all ramdisk resources used by the workflow. The correct binary set is
-selected from the host architecture, so Rosetta is not required. No separate
-Legacy-iOS-Kit checkout is required.
+The repository includes native x86_64 and arm64 copies of every macOS and Linux
+host tool and all ramdisk resources used by the workflow. The correct binary
+set is selected from the operating system and architecture, so Rosetta or a
+separate Legacy-iOS-Kit checkout is not required. Unsupported operating systems
+and CPU architectures fail closed instead of trying an incompatible binary.
+
+On Linux, install the runtime libraries and OpenSSH client provided by your
+distribution. Debian/Ubuntu users can use:
+
+```sh
+sudo apt install python3 openssh-client libcurl4 libusb-1.0-0 libreadline8
+```
+
+For non-root DFU access, install the bundled udev rule, reload udev, then
+unplug and reconnect the device:
+
+```sh
+sudo install -m 0644 contrib/udev/39-qwqramdisk.rules /etc/udev/rules.d/
+sudo udevadm control --reload-rules
+sudo udevadm trigger
+```
+
+Some distributions do not create a `plugdev` group. The rule also carries the
+systemd-logind `uaccess` tag, which is sufficient for an active local session;
+headless users should create/join `plugdev` or adapt the group in the rule.
 
 ## Quick start
 
@@ -241,6 +267,8 @@ addresses, XREFs, original bytes, and replacements.
 
 - Device-tested and passing on the iPhone 5s (iOS 7–8), iPhone 6 (iOS 8),
   and iPad mini 2 (iOS 7)
+- macOS is device-tested; Linux x86_64/arm64 support is experimental and has
+  host-tool/unit coverage but still needs broader physical-device validation
 - Every other iOS 7/8 A7/A8/A8X PRODUCT/MODEL is auto-detected without a
   model allowlist and is expected to work
 - `versions` prints the validation level for every selectable profile
@@ -253,7 +281,9 @@ addresses, XREFs, original bytes, and replacements.
 - [Legacy-iOS-Kit](https://github.com/LukeZGD/Legacy-iOS-Kit) by LukeZGD —
   firmware selection, packaged device utilities, iRam integration, IMG4/HFS
   tooling, the established SSH ramdisk workflow, and the bundled host-tool
-  builds copied from commit `bd921d51d8d84232d668adfd54e3e1e2edff9a33`.
+  builds. The original macOS set came from commit
+  `bd921d51d8d84232d668adfd54e3e1e2edff9a33`; Linux builds come from commit
+  `15263963392b548d3ab56ce95c08b37265394b31`.
 - [SSHRD_Script](https://github.com/verygenericname/SSHRD_Script) by Nathan /
   verygenericname — reference for modern checkm8 SSH ramdisk construction and
   boot sequencing.

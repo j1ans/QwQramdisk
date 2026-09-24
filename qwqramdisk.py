@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -10,7 +11,7 @@ sys.path.insert(0, str(ROOT))
 from tools.activation import dump_activation, restore_activation
 from tools.boot import boot, ssh_command
 from tools.build import build
-from tools.common import kit_bin
+from tools.common import host_platform, kit_bin
 from tools.device import select_profile
 from tools.fetch import fetch_components
 from tools.patch_ibec import patch as patch_ibec
@@ -122,9 +123,53 @@ def main():
             print(f"{p['device']:9} {p['board']:5} iOS {p['version']:5} "
                   f"build {p['build']:7} {validation_status(name)}")
     elif a.command == "doctor":
-        for name in ("pzb", "img4", "hfsplus", "irecovery", "ipwnder",
-                     "gaster", "iproxy", "sshpass"):
+        platform_name, arch = host_platform()
+        print(f"host: {platform_name}/{arch}")
+        tools = ["pzb", "img4", "hfsplus", "irecovery", "gaster",
+                 "iproxy", "sshpass"]
+        if platform_name == "macos":
+            tools.append("ipwnder")
+        for name in tools:
             print(f"{name}: {kit_bin(a.kit, name)}")
+        for name in ("ssh", "scp", "ps"):
+            path = shutil.which(name)
+            if not path:
+                raise FileNotFoundError(
+                    f"required system command not found in PATH: {name}")
+            print(f"{name}: {path}")
+        if platform_name == "linux":
+            probes = {
+                "pzb": ["--help"],
+                "img4": ["--help"],
+                "hfsplus": [],
+                "irecovery": ["--help"],
+                "gaster": ["--help"],
+                "iproxy": ["--help"],
+                "sshpass": ["-V"],
+            }
+            for name, arguments in probes.items():
+                command = [str(kit_bin(a.kit, name)), *arguments]
+                try:
+                    subprocess.run(
+                        command, stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL, timeout=5, check=False)
+                except (OSError, subprocess.TimeoutExpired) as exc:
+                    raise RuntimeError(
+                        f"bundled Linux tool cannot start: {name}: {exc}") from exc
+            print("linux tool startup probes: passed")
+            rule = ROOT / "contrib/udev/39-qwqramdisk.rules"
+            installed = any(Path(path).is_file() for path in (
+                "/etc/udev/rules.d/39-qwqramdisk.rules",
+                "/usr/lib/udev/rules.d/39-qwqramdisk.rules",
+                "/lib/udev/rules.d/39-qwqramdisk.rules",
+            ))
+            print(f"udev rule: {'installed' if installed else 'not installed'}")
+            if not installed:
+                print("WARNING: install the bundled udev rule before using "
+                      f"DFU as a non-root user: {rule}", file=sys.stderr)
+            if not Path("/dev/bus/usb").exists():
+                print("WARNING: /dev/bus/usb is unavailable; USB passthrough "
+                      "may be missing", file=sys.stderr)
         for name in ("IM4M7", "IM4M8", "sbplist.tar"):
             path = Path(a.kit) / "resources/sshrd" / name
             if not path.is_file():

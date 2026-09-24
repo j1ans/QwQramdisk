@@ -6,7 +6,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from .common import kit_bin, run, sha256
+from .common import host_platform, kit_bin, run, sha256
 from .profiles import get_profile
 
 
@@ -54,21 +54,28 @@ def _wait_dfu_query(irecovery, attempts=3, delay=2):
     return last_status, last_query
 
 
-def _pwn_retry(kit_root, output, irecovery, profile, retries, delay):
-    apple_silicon = os.uname().sysname == "Darwin" and os.uname().machine == "arm64"
+def _pwn_command(kit_root, output, profile):
+    platform_name, arch = host_platform()
+    apple_silicon = platform_name == "macos" and arch == "arm64"
     exploit = profile["exploit"]
     if exploit == "ipwnder" and apple_silicon:
         (output / "image3").mkdir(exist_ok=True)
         command = [str(kit_bin(kit_root, "ipwnder")), "-pv"]
     elif exploit == "ipwnder":
-        # Legacy-iOS-Kit uses gaster for A7 on Intel Macs; ipwnder_lite is
-        # selected only on Apple Silicon.
+        # ipwnder_lite is selected only on Apple Silicon.  Intel macOS and
+        # both supported Linux architectures use the bundled gaster build.
         exploit = "gaster"
         command = [str(kit_bin(kit_root, "gaster")), "pwn"]
     elif exploit == "gaster":
         command = [str(kit_bin(kit_root, "gaster")), "pwn"]
     else:
         raise ValueError(f"unsupported DFU exploit: {exploit}")
+    return exploit, command, apple_silicon
+
+
+def _pwn_retry(kit_root, output, irecovery, profile, retries, delay):
+    exploit, command, apple_silicon = _pwn_command(
+        kit_root, output, profile)
 
     last = None
     for attempt in range(1, retries + 1):
@@ -81,7 +88,7 @@ def _pwn_retry(kit_root, output, irecovery, profile, retries, delay):
                            check=False)
         time.sleep(2)
         # Both a failed heap attempt and gaster's successful reset can briefly
-        # remove the DFU interface.  Give macOS several enumeration windows
+        # remove the DFU interface.  Give the host several enumeration windows
         # before deciding that the user must re-enter DFU manually.
         status, query = _wait_dfu_query(
             irecovery, attempts=3, delay=max(1, min(delay, 3)))

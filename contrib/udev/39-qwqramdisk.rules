@@ -1,0 +1,3 @@
+# Permit the active local desktop user (or the plugdev group on headless
+# systems) to access Apple recovery and DFU USB interfaces.
+SUBSYSTEM=="usb", ATTR{idVendor}=="05ac", TAG+="uaccess", GROUP="plugdev", MODE="0660"

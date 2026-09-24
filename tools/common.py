@@ -7,6 +7,30 @@ import subprocess
 from pathlib import Path
 
 
+SUPPORTED_HOSTS = {
+    ("Darwin", "x86_64"): ("macos", "x86_64"),
+    ("Darwin", "arm64"): ("macos", "arm64"),
+    ("Linux", "x86_64"): ("linux", "x86_64"),
+    ("Linux", "amd64"): ("linux", "x86_64"),
+    ("Linux", "aarch64"): ("linux", "arm64"),
+    ("Linux", "arm64"): ("linux", "arm64"),
+}
+
+
+def host_platform(system=None, machine=None):
+    """Return the bundled-runtime directory for a supported host."""
+    if system is None or machine is None:
+        uname = os.uname()
+        system = uname.sysname if system is None else system
+        machine = uname.machine if machine is None else machine
+    try:
+        return SUPPORTED_HOSTS[(system, machine)]
+    except KeyError as exc:
+        raise RuntimeError(
+            f"unsupported host platform: {system}/{machine}; supported hosts "
+            "are macOS and Linux on x86_64 or arm64") from exc
+
+
 def sha256(data):
     if isinstance(data, Path):
         data = data.read_bytes()
@@ -55,24 +79,16 @@ def run(args, cwd=None, capture=False):
 def kit_bin(tools_root, name):
     """Resolve a bundled host tool (the old function name is API-compatible)."""
     root = Path(tools_root).expanduser().resolve()
-    system, machine = os.uname().sysname, os.uname().machine
-    if system == "Darwin":
-        arch = "arm64" if machine == "arm64" else "x86_64"
-        candidates = [
-            root / "bin/macos" / arch / name,
-            root / "bin/macos" / name,
-        ]
-    else:
-        arch = "arm64" if machine in {"arm64", "aarch64"} else machine
-        candidates = [
-            root / "bin/linux" / arch / name,
-            root / "bin/linux/x86_64" / name,
-            root / "bin/linux/arm64" / name,
-        ]
+    platform_name, arch = host_platform()
+    candidates = [root / "bin" / platform_name / arch / name]
+    if platform_name == "macos":
+        candidates.append(root / "bin/macos" / name)
     for path in candidates:
-        if path.is_file():
+        if path.is_file() and os.access(path, os.X_OK):
             return path
-    raise FileNotFoundError(f"cannot find bundled tool {name} under {root}/bin")
+    raise FileNotFoundError(
+        f"cannot find executable bundled tool {name} for "
+        f"{platform_name}/{arch} under {root}/bin")
 
 
 def select_identity(build_manifest, device, board):

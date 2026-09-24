@@ -1,11 +1,11 @@
 # Bundled runtime
 
-This directory contains the complete Intel and Apple Silicon macOS runtimes
-used by QwQramdisk. Native x86_64 binaries live under `bin/macos/x86_64`, and
-native arm64 binaries live under `bin/macos/arm64`. The files were copied from
-Legacy-iOS-Kit commit
-`bd921d51d8d84232d668adfd54e3e1e2edff9a33` so the project does not require a
-separate Legacy-iOS-Kit checkout.
+This directory contains the complete x86_64 and arm64 macOS and Linux runtimes
+used by QwQramdisk. Native binaries live under `bin/<os>/<arch>`. The macOS
+files were copied from Legacy-iOS-Kit commit
+`bd921d51d8d84232d668adfd54e3e1e2edff9a33`; the Linux files were copied from
+commit `15263963392b548d3ab56ce95c08b37265394b31`. A separate Legacy-iOS-Kit
+checkout is not required.
 
 | File/resource | Upstream / purpose |
 |---|---|
@@ -13,8 +13,8 @@ separate Legacy-iOS-Kit checkout.
 | `img4` | img4lib decryption and IMG4 wrapping |
 | `hfsplus` | HFS ramdisk editing |
 | `irecovery` + libraries | libirecovery DFU transport |
-| `ipwnder` | ipwnder_lite A7 checkm8 flow on Apple Silicon |
-| `gaster` | A7 checkm8 on Intel, A8 checkm8, and USB reset |
+| `ipwnder` | ipwnder_lite A7 checkm8 flow on Apple Silicon macOS |
+| `gaster` | A7 checkm8 on Intel macOS/Linux, A8 checkm8, and USB reset |
 | `iproxy` + libraries | libusbmuxd SSH forwarding |
 | `sshpass` | non-interactive SSH password input |
 | `IM4M7`, `IM4M8` | A7/A8 ramdisk IMG4 tickets from Legacy-iOS-Kit |

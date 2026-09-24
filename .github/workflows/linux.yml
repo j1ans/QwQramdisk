@@ -1,0 +1,23 @@
+name: Linux support
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  linux-x86_64:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify bundled runtime hashes
+        run: sha256sum --check vendor/SHA256SUMS
+      - name: Run unit tests
+        run: python3 -m unittest discover -s tests -v
+      - name: Compile Python sources
+        run: python3 -m compileall -q qwqramdisk.py tools tests
+      - name: Probe Linux host tools
+        run: ./qwqramdisk doctor
