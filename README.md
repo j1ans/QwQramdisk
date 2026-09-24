@@ -205,12 +205,14 @@ iOS 8 can mount the data volume before keybagd is started. `mount-mnt2` copies
 the exact matching daemon from `/mnt1/usr/libexec/keybagd`, verifies every path
 replacement, and starts the temporary copy through a launchd MachServices job.
 
-iOS 7 has a circular dependency: copying keybagd onto `/mnt2` may itself wait
-for the system keybag. The matching daemon is therefore pattern-patched during
-the build and embedded on md0. A second patch forces the data-volume
-`kb_load/kb_set` path even when the restore ramdisk has already installed a
-system handle. The load runs before keybagd initializes its bootstrap server,
-so the daemon may be started directly after `/mnt2` is attached.
+For iOS 7, `mount-mnt2` first attaches `/mnt1`, mounts `/mnt2` with HFS
+journaling enabled, then loads the matching SEP firmware. It reads the exact
+matching daemon from `/mnt1/usr/libexec/keybagd` and patches a copy into
+`/mnt2/tmp`, as on iOS 8.
+The iOS 7 patch also forces the data-volume `kb_load/kb_set` path even when the
+restore ramdisk has already installed a system handle. The daemon starts after
+the patch. Building iOS 7.1.2 no longer needs a separately supplied
+`keybagd.11D257.raw`.
 
 ### Compatible SSH userland
 

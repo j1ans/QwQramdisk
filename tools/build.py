@@ -8,7 +8,6 @@ from .fetch import fetch_components, key_for
 from .patch_ibec import patch as patch_ibec
 from .patch_ibss import patch as patch_ibss
 from .patch_kernel import patch as patch_kernel
-from .patch_keybagd import patch as patch_keybagd
 from .profiles import get_profile
 
 IRAM_URL = "https://github.com/LukeZGD/Legacy-iOS-Kit/files/14952123/iram.zip"
@@ -93,9 +92,6 @@ def build(kit_root, output, cache, project_root, profile="n53-12F70",
     decrypt_img4(img4, sources["RestoreRamdisk"], rd, key_for(keys, "RestoreRamdisk"))
 
     patched = output / "raw"; patched.mkdir(exist_ok=True)
-    stale_keybagd = patched / "keybagd.mnt2"
-    if stale_keybagd.exists():
-        stale_keybagd.unlink()
     ibss_raw, ibec_raw = patched / "iBSS.raw", patched / "iBEC.raw"
     kernel_raw = patched / "Kernelcache.comp"
     patch_ibss(ibss_dec, ibss_raw, profile, output / "iBSS.patch.json")
@@ -183,28 +179,18 @@ def build(kit_root, output, cache, project_root, profile="n53-12F70",
         hfs(hfsplus, ramdisk, "chown", "0:0", target)
 
     if ios7:
-        # iOS 7 cannot create the usual patched keybagd copy on /mnt2 until
-        # its system keybag is registered.  Keep the matching, path-relocated
-        # daemon on md0 instead.  mount-mnt2 starts it after attaching the
-        # data volume; the binary patch forces the data-volume system bag to
-        # replace the restore ramdisk's already-present system handle.
-        # iPhone6,1 and iPhone6,2 share the same system keybagd for a given
-        # iOS build.  Name the embedded copy by build rather than board.
-        ios7_keybagd_source = (
-            assets / f"keybagd.{get_profile(profile)['build']}.raw")
-        ios7_keybagd = dec / "keybagd.mnt2"
-        if not ios7_keybagd_source.is_file():
-            raise FileNotFoundError(
-                f"missing matching iOS 7 keybagd: {ios7_keybagd_source}")
-        patch_keybagd(ios7_keybagd_source, ios7_keybagd,
-                      output / "keybagd.patch.json")
+        # The installed system volume supplies its exact matching daemon at
+        # mount time.  This tool patches the copy into writable /mnt2/tmp.
+        keybagd_patcher = assets / "patch-keybagd"
+        if not keybagd_patcher.is_file():
+            raise FileNotFoundError(f"missing iOS 7 patcher: {keybagd_patcher}")
         hfs(hfsplus, ramdisk, "mkdir", "usr/local/libexec")
-        for source, target in [
-            (ios7_keybagd, "usr/local/libexec/keybagd.mnt2"),
-        ]:
-            hfs(hfsplus, ramdisk, "add", source, target)
-            hfs(hfsplus, ramdisk, "chmod", "755", target)
-            hfs(hfsplus, ramdisk, "chown", "0:0", target)
+        hfs(hfsplus, ramdisk, "add", keybagd_patcher,
+            "usr/local/libexec/patch-keybagd")
+        hfs(hfsplus, ramdisk, "chmod", "755",
+            "usr/local/libexec/patch-keybagd")
+        hfs(hfsplus, ramdisk, "chown", "0:0",
+            "usr/local/libexec/patch-keybagd")
 
     for source, target, scratch_name in [
         (assets / "entry.sh", "usr/local/bin/restored_external",
@@ -216,8 +202,8 @@ def build(kit_root, output, cache, project_root, profile="n53-12F70",
     if ios7:
         verify_hfs_file(hfsplus, ramdisk, "usr/local/bin/dropbear",
                         ios7_dropbear, dec / "verify-ios7-dropbear")
-        verify_hfs_file(hfsplus, ramdisk, "usr/local/libexec/keybagd.mnt2",
-                        ios7_keybagd, dec / "verify-ios7-keybagd")
+        verify_hfs_file(hfsplus, ramdisk, "usr/local/libexec/patch-keybagd",
+                        keybagd_patcher, dec / "verify-ios7-keybagd-patcher")
     else:
         verify_hfs_file(
             hfsplus, ramdisk,
