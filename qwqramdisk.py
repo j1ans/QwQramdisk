@@ -95,7 +95,7 @@ def parser():
                    help="irecovery attempts per send/command (default: 5)")
     p.add_argument("--dump-activation", nargs="?", const="", metavar="TAR",
                    help="after boot, dump activation records into a "
-                        "Legacy-iOS-Kit compatible tar (default: "
+                        "tar (default: "
                         "output/<profile>/<timestamp>-activation-<version>-<build>.tar)")
     p = sub.add_parser("mount", help="run the one-command /mnt2 mount over SSH"); add_kit(p)
     p.add_argument("--port", type=int, default=2236)

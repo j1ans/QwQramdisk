@@ -104,28 +104,33 @@ system binary is analyzed. `create` does not compile or sign the patcher.
 ./qwqramdisk restore-activation activation-7.1.1-11D201.tar
 ```
 
-The dump packages the device's activation files as a `Lockdown/` tree,
-preserving their modes and ownership. Earlier versions can include device
-keys, escrow and pair records; iOS 9.3+ includes the system container's
-activation records and `data_ark.plist`. The default filename is
+Earlier dumps package the device's activation files as a `Lockdown/` tree.
+For iOS 9.3+, the tar uses Legacy-iOS-Kit's `private/var/` layout: the system
+container's activation record and `data_ark.plist` are placed under
+`root/Library/Lockdown`, and available mobile FairPlay and wireless
+activation files are included. File modes and ownership are preserved.
+The default filename is
 `<timestamp>-activation-<version>-<build>.tar`, under `output/<profile>/`
 for `boot` and in the current directory for `dump-activation`.
 The timestamp includes microseconds, and an existing output file is never
 overwritten.
 
 `restore-activation` backs up the live destination before writing. On iOS
-9.3 and newer it restores `activation_records` to the system container and
-`data_ark.plist` to that container's `Library/internal`; earlier versions
-retain the Lockdown restore path. Every restored file is size-checked against
-the tar before the command reports success.
+9.3 and newer it restores `activation_records` to the system container,
+`data_ark.plist` to that container's `Library/internal`, and any included
+mobile or wireless files to their original paths. It also accepts older
+Lockdown-only iOS 9.3 dumps. Earlier versions retain the Lockdown restore
+path. Every restored file is size-checked against the tar before success.
 
 iOS 7 records are read from `/mnt2/root/Library/Lockdown`; iOS 8 and
 9.0–9.2 records are read from `/mnt2/mobile/Library/mad`. The location
 suggested by the installed version is preferred, with the other as fallback.
 For iOS 9.3 and newer, records come from the system container's
 `Library/activation_records` and `data_ark.plist` from `Library/internal`.
-All dumps use the `Lockdown/` tar layout. A dump or restore without any
-`*_record.plist` fails before writing a replacement.
+The iOS 9.3+ dump also includes available `IC-Info.sidv`, `IC-Info.sisv`, and
+`com.apple.commcenter.plist` files, matching Legacy-iOS-Kit's activation
+backup. A dump or restore without any `*_record.plist` fails before writing
+a replacement.
 
 The iRam userland in the ramdisk is linked against iOS 9+ libSystem symbols,
 so its `tar` and `ls -l` crash on the iOS 7 restore ramdisk. Nothing is
