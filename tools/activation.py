@@ -317,6 +317,9 @@ def dump_activation(kit_root, port, out=None, output_dir=None):
                     members.append((tar_path, None, mode, uid, gid, 0))
                     continue
                 local = dest / Path(source).name / rel
+                # scp can retain a 000 mode even without -p. The tar uses
+                # the remote listing above, so open only the temporary copy.
+                local.chmod(local.stat().st_mode | 0o400)
                 if not local.is_file() or local.stat().st_size != size:
                     raise RuntimeError(f"pulled copy of {rel} does not match the "
                                        f"device listing ({size} bytes expected)")
@@ -331,20 +334,27 @@ def dump_activation(kit_root, port, out=None, output_dir=None):
         else:
             target = Path(default_name)
         target.parent.mkdir(parents=True, exist_ok=True)
-        # Exclusive creation prevents even an explicitly named output from
-        # overwriting an earlier activation dump.
-        with tarfile.open(target, "x", format=tarfile.GNU_FORMAT) as tf:
-            for name, local, mode, uid, gid, size in sorted(members):
-                if local is None:
-                    _add_dir(tf, name, mode, uid, gid, mtime)
-                else:
-                    _add_file(tf, name, local.read_bytes(), mode, uid, gid, mtime)
+        # Exclusive creation prevents an earlier dump from being overwritten.
+        # Remove only our new archive if packing or verification fails.
+        created = False
+        try:
+            with tarfile.open(target, "x", format=tarfile.GNU_FORMAT) as tf:
+                created = True
+                for name, local, mode, uid, gid, size in sorted(members):
+                    if local is None:
+                        _add_dir(tf, name, mode, uid, gid, mtime)
+                    else:
+                        _add_file(tf, name, local.read_bytes(), mode, uid, gid, mtime)
 
-        with tarfile.open(target) as tf:
-            names = tf.getnames()
-            records = [name for name in names if "_record.plist" in name]
-            if not records:
-                raise RuntimeError("verification failed: no *_record.plist in the tar")
+            with tarfile.open(target) as tf:
+                names = tf.getnames()
+                records = [name for name in names if "_record.plist" in name]
+                if not records:
+                    raise RuntimeError("verification failed: no *_record.plist in the tar")
+        except BaseException:
+            if created:
+                target.unlink(missing_ok=True)
+            raise
         info = {
             "version": version, "build": build, "source": sources[0][0],
             "activation_records": records,
