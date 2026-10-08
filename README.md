@@ -155,7 +155,6 @@ failed-attempt counter far past the wipe threshold with wiping enabled.
 and Settings instead, run `./qwqramdisk nvram-erase --confirm` from the booted
 ramdisk, then reboot normally. This writes and verifies
 `oblit-inprogress=5` in NVRAM; the erase happens on the following boot.
-`erase-ios9` remains an alias for existing scripts.
 
 ## Commands
 

@@ -119,7 +119,7 @@ def parser():
                             "(attempts=-9999, drop SBDevice* keys, delete LockoutState* files)")
     add_kit(p)
     p.add_argument("--port", type=int, default=2236)
-    p = sub.add_parser("nvram-erase", aliases=["erase-ios9"],
+    p = sub.add_parser("nvram-erase",
                        help="arm iOS 9+ Erase All Content and Settings in NVRAM")
     add_kit(p)
     p.add_argument("--port", type=int, default=2236)
@@ -244,7 +244,7 @@ def main():
         for name in report.get("lockout_files_deleted", []):
             print(f"deleted /mnt2/mobile/Library/SpringBoard/{name}")
         print(f"On-device backup: {report['backup']}")
-    elif a.command in ("nvram-erase", "erase-ios9"):
+    elif a.command == "nvram-erase":
         if not a.confirm:
             raise ValueError("nvram-erase requires --confirm; the next normal boot "
                              "may erase all content and settings")

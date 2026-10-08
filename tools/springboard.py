@@ -95,7 +95,7 @@ def lock_wipe(kit_root, port):
 
     version, _ = device_version(kit_root, port)
     if version.startswith("9."):
-        raise ValueError("iOS 9 erasure uses erase-ios9 and NVRAM")
+        raise ValueError("iOS 9 erasure uses nvram-erase")
 
     def mutate(doc):
         doc[ATTEMPTS_KEY] = WIPE_ATTEMPTS
