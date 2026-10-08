@@ -4,16 +4,13 @@ import json
 import os
 import plistlib
 import subprocess
+import sys
 from pathlib import Path
 
 
 SUPPORTED_HOSTS = {
     ("Darwin", "x86_64"): ("macos", "x86_64"),
     ("Darwin", "arm64"): ("macos", "arm64"),
-    ("Linux", "x86_64"): ("linux", "x86_64"),
-    ("Linux", "amd64"): ("linux", "x86_64"),
-    ("Linux", "aarch64"): ("linux", "arm64"),
-    ("Linux", "arm64"): ("linux", "arm64"),
 }
 
 
@@ -28,13 +25,17 @@ def host_platform(system=None, machine=None):
     except KeyError as exc:
         raise RuntimeError(
             f"unsupported host platform: {system}/{machine}; supported hosts "
-            "are macOS and Linux on x86_64 or arm64") from exc
+            "are macOS on x86_64 or arm64") from exc
 
 
 def sha256(data):
     if isinstance(data, Path):
         data = data.read_bytes()
     return hashlib.sha256(data).hexdigest()
+
+
+def progress(message):
+    print(f"[*] {message}", file=sys.stderr, flush=True)
 
 
 def require_sha(data, expected, label):

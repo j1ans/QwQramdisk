@@ -1,8 +1,45 @@
 #!/bin/bash
 set -u
 export PATH=/usr/local/bin:/usr/bin:/usr/sbin:/bin:/sbin
-say() { echo "[mount-mnt2] $*"; }
+say() { echo "[*] [mount-mnt2] $*"; }
 fail() { say "ERROR: $*" >&2; exit 1; }
+
+if [ -f /private/var/tmp/ios9-profile.txt ]; then
+    # Keep the same public mount entry point used by the iOS 7/8 commands.
+    SERVICE_OUTPUT="$(/bin/launchctl list com.apple.mobile.keybagd 2>/dev/null || true)"
+    case "$SERVICE_OUTPUT" in
+      *'"PID"'*) ;;
+      *)
+        /usr/local/bin/mount-ios9-stage || fail 'iOS 9 Data mount or keybagd patch failed'
+        /usr/local/bin/finish-ios9-keybagd || fail 'iOS 9 system keybagd failed'
+        ;;
+    esac
+    MOUNT_LINE=''
+    while IFS= read -r line; do
+        case "$line" in
+          '/dev/disk0s1s2 on /mnt2 '*) MOUNT_LINE="$line" ;;
+        esac
+    done <<< "$(/sbin/mount)"
+    [ -n "$MOUNT_LINE" ] || fail 'iOS 9 Data is not mounted'
+    case "$MOUNT_LINE" in
+        *read-only*) fail 'iOS 9 Data is read-only' ;;
+        *journaled*) ;;
+        *) fail 'iOS 9 Data is not journaled' ;;
+    esac
+    SYSTEMBAG=/mnt2/keybags/systembag.kb
+    [ -f "$SYSTEMBAG" ] || fail 'system keybag is missing from Data'
+    /bin/cat "$SYSTEMBAG" > /dev/null \
+        || fail 'cannot read system keybag'
+    PROBE="/mnt2/tmp/.qwqramdisk-rw.$$"
+    PAYLOAD="qwqramdisk-rw-$$"
+    printf '%s\n' "$PAYLOAD" > "$PROBE" || fail 'Data write probe failed'
+    READBACK="$(/bin/cat "$PROBE")" || fail 'Data read probe failed'
+    [ "$READBACK" = "$PAYLOAD" ] || fail 'Data readback mismatch'
+    /bin/rm -f "$PROBE" || fail 'cannot remove Data probe'
+    say 'iOS 9 system keybag read and Data write/read/delete passed'
+    say 'ready; /dev/disk0s1s2 is mounted journaled RW on /mnt2'
+    exit 0
+fi
 
 [ -b /dev/disk0s1s1 ] || fail 'missing system volume'
 [ -b /dev/disk0s1s2 ] || fail 'missing data volume'

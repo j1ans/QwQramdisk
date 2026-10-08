@@ -1,0 +1,62 @@
+#!/bin/bash
+# iOS 9: mount Data normally, then patch its matching /mnt1 keybagd.
+# A fixed bundled patcher copies and patches the matching /mnt1 keybagd.
+set -euo pipefail
+export PATH=/usr/local/bin:/usr/bin:/usr/sbin:/bin:/sbin
+
+say() { echo "[*] [mount-ios9-stage] $*"; }
+fail() { say "ERROR: $*" >&2; exit 1; }
+
+[[ -f /private/var/tmp/ios9-profile.txt ]] || fail 'wrong ramdisk profile'
+profile="$(/bin/cat /private/var/tmp/ios9-profile.txt)"
+case "$profile" in
+    n66-13A405|n66m-13A405|n71-13A405|n71m-13A405)
+        build=13A405 ;;
+    n66m-13E238|n66-13E238) build=13E238 ;;
+    j81-13E238|j82-13E238|n61-13E238|n71-13E238|n71m-13E238|n51-13E238|n53-13E238|j85-13E238|j86-13E238|j87-13E238|j85m-13E238|j86m-13E238|j87m-13E238)
+        build=13E238 ;;
+    *) fail "no verified keybagd patch for iOS 9 profile: $profile" ;;
+esac
+[[ -b /dev/disk0s1s1 && -b /dev/disk0s1s2 ]] || fail 'missing System or Data volume'
+
+mounts="$(/sbin/mount)"
+if [[ "$mounts" != *'/dev/disk0s1s1 on /mnt1 '* ]]; then
+    /sbin/mount_hfs -o ro /dev/disk0s1s1 /mnt1 || fail 'System mount failed'
+fi
+[[ -f /mnt1/System/Library/CoreServices/SystemVersion.plist ]] \
+    || fail 'SystemVersion.plist missing'
+system_version="$(/bin/cat /mnt1/System/Library/CoreServices/SystemVersion.plist)"
+[[ "$system_version" == *"<string>$build</string>"* ]] \
+    || fail "mounted system is not build $build"
+
+if ! /mnt1/usr/libexec/seputil --ping >/dev/null 2>&1; then
+    /mnt1/usr/libexec/seputil --load \
+        /mnt1/usr/standalone/firmware/sep-firmware.img4 \
+        || fail 'SEP firmware load failed'
+fi
+sep_ready=0
+for attempt in 1 2 3 4 5; do
+    if /mnt1/usr/libexec/seputil --ping >/dev/null 2>&1; then sep_ready=1; break; fi
+    /bin/sleep 1
+done
+[[ "$sep_ready" -eq 1 ]] || fail 'SEP did not become ready'
+
+mounts="$(/sbin/mount)"
+if [[ "$mounts" != *'/dev/disk0s1s2 on /mnt2 '* ]]; then
+    /sbin/mount_hfs -o rw /dev/disk0s1s2 /mnt2 \
+        || fail 'direct journaled Data RW mount failed'
+fi
+mount_line=''
+while IFS= read -r line; do
+    if [[ "$line" == '/dev/disk0s1s2 on /mnt2 '* ]]; then mount_line="$line"; fi
+done <<< "$(/sbin/mount)"
+[[ "$mount_line" == *journaled* && "$mount_line" != *read-only* ]] \
+    || fail 'Data is not journaled RW'
+
+[[ -f /mnt1/usr/libexec/keybagd ]] || fail 'matching system keybagd missing'
+/bin/mkdir -p /mnt2/tmp || fail 'Data temporary directory unavailable'
+[[ -x /usr/local/libexec/patch-keybagd-ios9 ]] || fail 'patcher missing'
+/usr/local/libexec/patch-keybagd-ios9 \
+    /mnt1/usr/libexec/keybagd /mnt2/tmp/qwqramdisk-keybagd \
+    || fail 'keybagd patch failed'
+say 'Data mounted journaled RW; /mnt1 keybagd copied and patched into /mnt2/tmp'

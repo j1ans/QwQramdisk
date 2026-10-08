@@ -22,6 +22,7 @@ dropbear's sftp-server rejects the realpath of recursive uploads) pushes
 files back for restores, and the tar is assembled and verified on the host.
 """
 import io
+from datetime import datetime
 import plistlib
 import re
 import shutil
@@ -135,6 +136,9 @@ def sftp_push_tree(kit_root, port, local_root, remote_root, dir_rels, file_rels)
 
 
 def device_version(kit_root, port):
+    ssh_run(kit_root, port,
+            f'test -f {SYSTEM_VERSION_REMOTE} || '
+            '/sbin/mount_hfs -o ro /dev/disk0s1s1 /mnt1')
     doc = plistlib.loads(ssh_run(kit_root, port,
                                  f"cat {SYSTEM_VERSION_REMOTE}").encode())
     return doc["ProductVersion"], doc["ProductBuildVersion"]
@@ -266,14 +270,18 @@ def dump_activation(kit_root, port, out=None, output_dir=None):
                                    f"device listing ({size} bytes expected)")
             members.append((tar_path, local, mode, uid, gid, size))
 
+        timestamp = datetime.now().astimezone().strftime("%Y%m%d-%H%M%S-%f")
+        default_name = f"{timestamp}-activation-{version}-{build}.tar"
         if out:
             target = Path(out)
         elif output_dir:
-            target = Path(output_dir) / f"activation-{version}-{build}.tar"
+            target = Path(output_dir) / default_name
         else:
-            target = Path(f"activation-{version}-{build}.tar")
+            target = Path(default_name)
         target.parent.mkdir(parents=True, exist_ok=True)
-        with tarfile.open(target, "w", format=tarfile.GNU_FORMAT) as tf:
+        # Exclusive creation prevents even an explicitly named output from
+        # overwriting an earlier activation dump.
+        with tarfile.open(target, "x", format=tarfile.GNU_FORMAT) as tf:
             for name, local, mode, uid, gid, size in sorted(members):
                 if local is None:
                     _add_dir(tf, name, mode, uid, gid, mtime)

@@ -6,7 +6,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from .common import host_platform, kit_bin, run, sha256
+from .common import host_platform, kit_bin, progress, run, sha256
 from .profiles import get_profile
 
 
@@ -62,8 +62,8 @@ def _pwn_command(kit_root, output, profile):
         (output / "image3").mkdir(exist_ok=True)
         command = [str(kit_bin(kit_root, "ipwnder")), "-pv"]
     elif exploit == "ipwnder":
-        # ipwnder_lite is selected only on Apple Silicon.  Intel macOS and
-        # both supported Linux architectures use the bundled gaster build.
+        # ipwnder_lite is selected only on Apple Silicon. Intel macOS uses
+        # the bundled gaster build.
         exploit = "gaster"
         command = [str(kit_bin(kit_root, "gaster")), "pwn"]
     elif exploit == "gaster":
@@ -128,11 +128,14 @@ def boot(kit_root, output, port=2236, remote_port=22, usb_delay=4,
             f"expected {profile['device']}/{profile['board']} in DFU mode; "
             f"device query does not match: {', '.join(missing)}")
     if "PWND" not in query:
+        progress("pwning DFU")
         query = _pwn_retry(
             kit_root, output, irecovery, profile, retries, usb_delay)
+    progress("sending iBSS")
     _irecovery_retry(irecovery, ["-f", output / "iBSS.im4p"],
                      "iBSS send", retries, usb_delay)
     time.sleep(max(8, usb_delay))
+    progress("sending iBEC")
     _irecovery_retry(irecovery, ["-f", output / "iBEC.im4p"],
                      "iBEC send", retries, usb_delay)
     # A7 disconnects and enumerates a new USB interface after iBEC.  Some
@@ -143,13 +146,17 @@ def boot(kit_root, output, port=2236, remote_port=22, usb_delay=4,
         ("DeviceTree.img4", "devicetree"),
         ("Kernelcache.img4", "bootx"),
     ]:
+        progress(f"sending {name}")
         _irecovery_retry(irecovery, ["-f", output / name],
                          f"{name} send", retries, usb_delay)
         time.sleep(usb_delay)
+        progress(f"setting {command}")
         _irecovery_retry(irecovery, ["-c", command],
                          f"{command} command", retries, usb_delay)
         time.sleep(usb_delay)
+    progress("starting USB SSH forwarding")
     start_iproxy(kit_root, output, port, remote_port)
+    progress("waiting for SSH")
     return wait_ssh(kit_root, port, 45)
 
 

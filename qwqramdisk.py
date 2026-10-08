@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import argparse
 import json
-import os
 import shutil
 import subprocess
 import sys
@@ -12,56 +11,16 @@ sys.path.insert(0, str(ROOT))
 from tools.activation import dump_activation, restore_activation
 from tools.boot import boot, ssh_command
 from tools.build import build
-from tools.common import host_platform, kit_bin
-from tools.device import select_profile
+from tools.common import host_platform, kit_bin, progress
+from tools.device import query_device, select_profile
+from tools.erase import arm_ios9_erase
 from tools.fetch import fetch_components
 from tools.patch_ibec import patch as patch_ibec
 from tools.patch_ibss import patch as patch_ibss
 from tools.patch_kernel import patch as patch_kernel
-from tools.profiles import PROFILES, validation_status
+from tools.profiles import (PROFILES, get_profile, profile_for_board,
+                            validation_status)
 from tools.springboard import lock_wipe, remove_disabled
-
-
-LINUX_UDEV_PATH = Path("/etc/udev/rules.d/99-libirecovery.rules")
-LINUX_UDEV_RULE = (
-    'SUBSYSTEM=="usb", ATTR{idVendor}=="05ac", '
-    'MODE:="0666", TAG+="uaccess"\n'
-)
-
-
-def ensure_linux_udev_rule():
-    """Install the libirecovery USB rule on Linux, as Legacy-iOS-Kit does."""
-    try:
-        if LINUX_UDEV_PATH.is_file() and LINUX_UDEV_PATH.stat().st_size:
-            return False
-    except OSError:
-        pass
-
-    elevated = []
-    if os.geteuid() != 0:
-        sudo = shutil.which("sudo")
-        if not sudo:
-            raise FileNotFoundError(
-                "sudo is required once to install the Linux USB rule")
-        elevated = [sudo]
-    udevadm = shutil.which("udevadm")
-    if not udevadm:
-        raise FileNotFoundError(
-            "udevadm is required to install the Linux USB rule")
-
-    print("Setting up Linux USB access (password may be requested)...",
-          file=sys.stderr)
-    subprocess.run(
-        [*elevated, "mkdir", "-p", str(LINUX_UDEV_PATH.parent)],
-        check=True)
-    subprocess.run(
-        [*elevated, "tee", str(LINUX_UDEV_PATH)], input=LINUX_UDEV_RULE,
-        text=True, stdout=subprocess.DEVNULL, check=True)
-    subprocess.run(
-        [*elevated, udevadm, "control", "--reload-rules"], check=True)
-    subprocess.run(
-        [*elevated, udevadm, "trigger", "-s", "usb"], check=True)
-    return True
 
 
 def default_kit():
@@ -77,12 +36,34 @@ def add_kit(ap):
 def add_version(ap):
     add_kit(ap)
     ap.add_argument("version", nargs="?", help="installed iOS version, for example 8.3")
-    ap.add_argument("--profile", help=argparse.SUPPRESS)
+    ap.add_argument("--profile", metavar="BOARD-BUILD",
+                    help="exact board/build profile for versions with multiple IPSWs")
+
+
+def add_board(ap):
+    ap.add_argument("--board", metavar="BOARD",
+                    help="board name, for example n66m or n66map; no device required")
+    ap.add_argument("--build", metavar="BUILD",
+                    help="IPSW build when the board and iOS version are ambiguous")
 
 
 def resolve_profile(a, require_dfu=False):
+    board = getattr(a, "board", None)
+    build = getattr(a, "build", None)
+    if a.profile and (board or build):
+        raise ValueError("use either --profile or --board/--build")
+    if build and not board:
+        raise ValueError("--build requires --board")
     if getattr(a, "profile", None):
+        selected = get_profile(a.profile)
+        if getattr(a, "version", None) and selected["version"] != a.version:
+            raise ValueError(
+                f"{a.profile} is iOS {selected['version']}, not {a.version}")
         return a.profile
+    if board:
+        if not getattr(a, "version", None):
+            raise ValueError("iOS version is required with --board")
+        return profile_for_board(board, a.version, build)
     if not getattr(a, "version", None):
         raise ValueError("iOS version is required, for example: create 8.3")
     profile, device = select_profile(a.kit, a.version, require_dfu)
@@ -94,15 +75,18 @@ def resolve_profile(a, require_dfu=False):
 
 def parser():
     ap = argparse.ArgumentParser(prog="qwqramdisk",
-        description="Build and boot an iOS 7/8 arm64 /mnt2 SSH ramdisk")
+        description="Build and boot an arm64 iOS 7/8/9 SSH ramdisk")
     sub = ap.add_subparsers(dest="command", required=True)
     p = sub.add_parser("doctor", help="check required Legacy-iOS-Kit binaries"); add_kit(p)
     sub.add_parser("versions", aliases=["profiles"], help="list supported iOS versions")
-    p = sub.add_parser("fetch", help="fetch boot components for the connected device"); add_version(p)
+    p = sub.add_parser("fetch", help="fetch boot components for a device or board"); add_version(p); add_board(p)
     p.add_argument("--cache")
-    p = sub.add_parser("create", help="build for the connected device and iOS version"); add_version(p)
+    p = sub.add_parser("create", help="build for a connected device or specified board"); add_version(p); add_board(p)
     p.add_argument("--cache"); p.add_argument("--output")
-    p.add_argument("--offline", action="store_true", help="reuse a complete cache")
+    p.add_argument("--offline", action="store_true",
+                   help="build without a connected device; requires --board or --profile")
+    p.add_argument("--no-download", action="store_true",
+                   help="use a complete local firmware cache without downloading")
     p = sub.add_parser("boot", help="boot the connected DFU device"); add_version(p)
     p.add_argument("--output"); p.add_argument("--port", type=int, default=2236)
     p.add_argument("--usb-delay", type=int, default=4,
@@ -112,14 +96,14 @@ def parser():
     p.add_argument("--dump-activation", nargs="?", const="", metavar="TAR",
                    help="after boot, dump activation records into a "
                         "Legacy-iOS-Kit compatible tar (default: "
-                        "output/<profile>/activation-<version>-<build>.tar)")
+                        "output/<profile>/<timestamp>-activation-<version>-<build>.tar)")
     p = sub.add_parser("mount", help="run the one-command /mnt2 mount over SSH"); add_kit(p)
     p.add_argument("--port", type=int, default=2236)
     p = sub.add_parser("dump-activation",
                        help="dump activation records from an already-booted ramdisk")
     add_kit(p)
     p.add_argument("--port", type=int, default=2236)
-    p.add_argument("--out", help="output tar path (default: ./activation-<version>-<build>.tar)")
+    p.add_argument("--out", help="output tar path (default: ./<timestamp>-activation-<version>-<build>.tar)")
     p = sub.add_parser("restore-activation",
                        help="restore a dumped activation tar back onto the device")
     add_kit(p)
@@ -135,6 +119,12 @@ def parser():
                             "(attempts=-9999, drop SBDevice* keys, delete LockoutState* files)")
     add_kit(p)
     p.add_argument("--port", type=int, default=2236)
+    p = sub.add_parser("erase-ios9",
+                       help="arm iOS 9 Erase All Content and Settings in NVRAM")
+    add_kit(p)
+    p.add_argument("--port", type=int, default=2236)
+    p.add_argument("--confirm", action="store_true",
+                   help="confirm that the next normal boot may erase all content")
     p = sub.add_parser("ssh", help="open an interactive root shell"); add_kit(p)
     p.add_argument("--port", type=int, default=2236)
     for name, help_text in [("patch-ibss", "patch a decrypted iBSS"),
@@ -155,12 +145,9 @@ def _print_activation(path, info):
 
 def main():
     a = parser().parse_args()
-    platform_name, _ = host_platform()
-    if platform_name == "linux":
-        ensure_linux_udev_rule()
+    host_platform()
     if a.command in ("versions", "profiles"):
-        print("AUTO      any     iOS 7/8 experimental A7/A8/A8X auto-detection; "
-              "device-untested-use-at-own-risk")
+        print("AUTO      any     iOS 7/8 A7/A8/A8X pattern-supported auto-detection")
         def version_key(item):
             name, p = item
             return (p["device"], tuple(int(x) for x in p["version"].split(".")),
@@ -169,12 +156,12 @@ def main():
             print(f"{p['device']:9} {p['board']:5} iOS {p['version']:5} "
                   f"build {p['build']:7} {validation_status(name)}")
     elif a.command == "doctor":
+        progress("checking macOS host tools and ramdisk resources")
         platform_name, arch = host_platform()
         print(f"host: {platform_name}/{arch}")
         tools = ["pzb", "img4", "hfsplus", "irecovery", "gaster",
                  "iproxy", "sshpass"]
-        if platform_name == "macos":
-            tools.append("ipwnder")
+        tools.append("ipwnder")
         for name in tools:
             print(f"{name}: {kit_bin(a.kit, name)}")
         for name in ("ssh", "scp", "ps"):
@@ -183,30 +170,6 @@ def main():
                 raise FileNotFoundError(
                     f"required system command not found in PATH: {name}")
             print(f"{name}: {path}")
-        if platform_name == "linux":
-            probes = {
-                "pzb": ["--help"],
-                "img4": ["--help"],
-                "hfsplus": [],
-                "irecovery": ["--help"],
-                "gaster": ["--help"],
-                "iproxy": ["--help"],
-                "sshpass": ["-V"],
-            }
-            for name, arguments in probes.items():
-                command = [str(kit_bin(a.kit, name)), *arguments]
-                try:
-                    subprocess.run(
-                        command, stdout=subprocess.DEVNULL,
-                        stderr=subprocess.DEVNULL, timeout=5, check=False)
-                except (OSError, subprocess.TimeoutExpired) as exc:
-                    raise RuntimeError(
-                        f"bundled Linux tool cannot start: {name}: {exc}") from exc
-            print("linux tool startup probes: passed")
-            print(f"udev rule: {LINUX_UDEV_PATH}")
-            if not Path("/dev/bus/usb").exists():
-                print("WARNING: /dev/bus/usb is unavailable; USB passthrough "
-                      "may be missing", file=sys.stderr)
         for name in ("IM4M7", "IM4M8", "sbplist.tar"):
             path = Path(a.kit) / "resources/sshrd" / name
             if not path.is_file():
@@ -222,13 +185,25 @@ def main():
         fw, keys, files = fetch_components(a.kit, cache, profile)
         print(json.dumps({"firmware": fw, "files": {k: str(v) for k, v in files.items()}}, indent=2))
     elif a.command == "create":
+        if a.offline and not (a.board or a.profile):
+            raise ValueError("--offline requires --board or --profile")
         profile = resolve_profile(a, require_dfu=True)
         cache = a.cache or f"cache/{profile}"
         output = a.output or f"output/{profile}"
-        doc = build(a.kit, output, cache, ROOT, profile, a.offline)
+        doc = build(a.kit, output, cache, ROOT, profile, a.no_download)
         print(json.dumps(doc, indent=2))
     elif a.command == "boot":
         profile = resolve_profile(a, require_dfu=True)
+        if a.profile:
+            device = query_device(a.kit, require_dfu=True)
+            expected = get_profile(profile)
+            if (device["PRODUCT"] != expected["device"]
+                    or device["MODEL"].lower() != expected["board"].lower()
+                    or int(device["CPID"], 0) != expected["cpid"]
+                    or int(device["BDID"], 0) != expected["bdid"]):
+                raise ValueError(
+                    f"DFU hardware does not match {profile}: "
+                    f"{device['PRODUCT']}/{device['MODEL']}")
         output = a.output or f"output/{profile}"
         if a.usb_delay < 1 or a.retries < 1:
             raise ValueError("--usb-delay and --retries must be positive")
@@ -244,18 +219,22 @@ def main():
                                          output_dir=output)
             _print_activation(path, info)
     elif a.command == "mount":
+        progress("mounting and verifying /mnt2")
         raise SystemExit(ssh_command(
             a.kit, a.port, "/usr/local/bin/mount-mnt2"))
     elif a.command == "dump-activation":
+        progress("reading activation records")
         path, info = dump_activation(a.kit, a.port, out=a.out)
         _print_activation(path, info)
     elif a.command == "restore-activation":
+        progress("backing up and restoring activation records")
         path, info = restore_activation(a.kit, a.port, a.tar)
         print(f"Restored {info['restored']} files from {path} "
               f"({len(info['activation_records'])} activation record(s))")
         for backup in info["backups"]:
             print(f"On-device backup: {backup}")
     elif a.command in ("lock-wipe", "remove-disabled"):
+        progress(f"updating SpringBoard configuration: {a.command}")
         report = (lock_wipe(a.kit, a.port) if a.command == "lock-wipe"
                   else remove_disabled(a.kit, a.port))
         for key, value in report["set"].items():
@@ -265,7 +244,16 @@ def main():
         for name in report.get("lockout_files_deleted", []):
             print(f"deleted /mnt2/mobile/Library/SpringBoard/{name}")
         print(f"On-device backup: {report['backup']}")
+    elif a.command == "erase-ios9":
+        if not a.confirm:
+            raise ValueError("erase-ios9 requires --confirm; the next normal boot "
+                             "may erase all content and settings")
+        progress("writing and verifying iOS 9 erase NVRAM flag")
+        report = arm_ios9_erase(a.kit, a.port)
+        print(f"Armed {report['setting']} on iOS {report['version']} "
+              f"({report['build']}). Reboot to apply the erase.")
     elif a.command == "ssh":
+        progress("opening root SSH shell")
         ssh_command(a.kit, a.port, None, True)
     elif a.command == "patch-ibss":
         patch_ibss(a.source, a.output, a.version, a.manifest)

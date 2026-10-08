@@ -1,0 +1,33 @@
+#!/bin/bash
+# Start the /mnt1-derived patched keybagd copy after mounting Data.
+set -euo pipefail
+export PATH=/usr/local/bin:/usr/bin:/usr/sbin:/bin:/sbin
+
+say() { echo "[*] [finish-ios9-keybagd] $*"; }
+fail() { say "ERROR: $*" >&2; exit 1; }
+
+mount_line=''
+while IFS= read -r line; do
+    if [[ "$line" == '/dev/disk0s1s2 on /mnt2 '* ]]; then mount_line="$line"; fi
+done <<< "$(/sbin/mount)"
+[[ "$mount_line" == *journaled* && "$mount_line" != *read-only* ]] \
+    || fail 'Data is not journaled RW'
+keybagd=/mnt2/tmp/qwqramdisk-keybagd
+[[ -x "$keybagd" ]] || fail 'patched keybagd missing'
+
+init_output="$("$keybagd" --init 2>&1)" || {
+    printf '%s\n' "$init_output" >&2
+    fail 'system keybag initialization failed'
+}
+printf '%s\n' "$init_output"
+[[ "$init_output" == *'System Keybag loaded'* ]] \
+    || fail 'system keybag load not confirmed'
+
+if ! /bin/launchctl list com.apple.mobile.keybagd >/dev/null 2>&1; then
+    /bin/launchctl bootstrap system \
+        /private/var/tmp/com.apple.mobile.keybagd-ios9.plist \
+        || fail 'keybagd launchd bootstrap failed'
+fi
+/bin/launchctl list com.apple.mobile.keybagd
+say "$mount_line"
+say 'system keybag and service ready'

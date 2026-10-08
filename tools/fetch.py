@@ -1,7 +1,9 @@
 import json
+import re
+import subprocess
 import urllib.request
 from pathlib import Path
-from .common import kit_bin, manifest_path, run, select_identity
+from .common import kit_bin, manifest_path, progress, run, select_identity
 from .profiles import get_profile
 
 IPSW_API = "https://api.ipsw.me/v4/device/{device}?type=ipsw"
@@ -31,7 +33,15 @@ def resolve_keys(profile):
     return doc
 
 
-def key_for(keys, image):
+def key_for(keys, image, filename=None):
+    if filename is not None:
+        for item in keys["keys"]:
+            key_filename = item["filename"]
+            if (re.fullmatch(re.escape(image) + r"\d*", item["image"], re.I)
+                    and (key_filename == filename
+                         or key_filename + ".dmg" == filename)):
+                return item
+        raise ValueError(f"firmware keys do not contain {image} for {filename}")
     for item in keys["keys"]:
         if item["image"].lower() == image.lower():
             return item
@@ -52,8 +62,15 @@ def pzb_get(kit_root, url, member, output, atomic=False, quiet=False):
         if output.exists() and not complete.exists():
             output.unlink()
     # pzb treats -o as a basename and writes into its current directory.
-    run([kit_bin(kit_root, "pzb"), "-g", member, "-o", target.name, url],
-        cwd=output.parent, capture=quiet)
+    command = [kit_bin(kit_root, "pzb"), "-g", member, "-o", target.name, url]
+    if quiet:
+        result = subprocess.run(
+            [str(x) for x in command], cwd=output.parent, check=False,
+            stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
+        if result.returncode:
+            raise RuntimeError(f"pzb failed for {member}: {result.stderr[-800:]}")
+    else:
+        run(command, cwd=output.parent)
     if not target.is_file() or not target.stat().st_size:
         raise RuntimeError(f"pzb did not create {target}")
     if atomic:
@@ -64,10 +81,13 @@ def pzb_get(kit_root, url, member, output, atomic=False, quiet=False):
 
 def fetch_components(kit_root, cache, profile="n53-12F70"):
     cache = Path(cache); cache.mkdir(parents=True, exist_ok=True)
+    progress(f"resolving firmware and keys for {profile}")
     fw = resolve_firmware(profile); keys = resolve_keys(profile)
     (cache / "firmware.json").write_text(json.dumps(fw, indent=2) + "\n")
     (cache / "keys.json").write_text(json.dumps(keys, indent=2) + "\n")
-    bm = pzb_get(kit_root, fw["url"], "BuildManifest.plist", cache / "BuildManifest.plist")
+    progress("fetching BuildManifest")
+    bm = pzb_get(kit_root, fw["url"], "BuildManifest.plist",
+                 cache / "BuildManifest.plist", quiet=True)
     p = get_profile(profile)
     identity = select_identity(bm, p["device"], p["board"])
     components = {
@@ -79,7 +99,8 @@ def fetch_components(kit_root, cache, profile="n53-12F70"):
     }
     outputs = {"BuildManifest": bm}
     for image, member in components.items():
+        progress(f"fetching {image}")
         outputs[image] = pzb_get(
             kit_root, fw["url"], member,
-            cache / "encrypted" / Path(member).name)
+            cache / "encrypted" / Path(member).name, quiet=True)
     return fw, keys, outputs

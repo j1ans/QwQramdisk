@@ -3,7 +3,7 @@ import re
 
 from .common import kit_bin, run
 from .fetch import get_json
-from .profiles import PROFILES, register_experimental_profile
+from .profiles import PROFILES, register_dynamic_profile
 
 
 IPSW_API = "https://api.ipsw.me/v4/device/{device}?type=ipsw"
@@ -34,14 +34,14 @@ def select_profile(kit_root, version, require_dfu=False):
         return matches[0], device
     if len(matches) > 1:
         raise ValueError(
-            f"multiple iOS {version} profiles for {device['PRODUCT']}/{device['MODEL']}")
+            f"multiple iOS {version} builds for {device['PRODUCT']}/{device['MODEL']}: "
+            f"{', '.join(sorted(matches))}; select the installed build with --profile")
 
-    # No PRODUCT/MODEL allowlist: resolve the installed version for the DFU
-    # device and create an explicitly experimental profile for this command.
+    # Resolve a new A7/A8/A8X board from the connected DFU device and its IPSW.
     catalog = get_json(IPSW_API.format(device=device["PRODUCT"]))
     firmwares = [fw for fw in catalog.get("firmwares", [])
                  if fw.get("version") == version]
     if len(firmwares) != 1:
         raise ValueError(
             f"no unique IPSW for {device['PRODUCT']}/{device['MODEL']} iOS {version}")
-    return register_experimental_profile(device, version, firmwares[0]), device
+    return register_dynamic_profile(device, version, firmwares[0]), device

@@ -20,7 +20,7 @@ import tempfile
 import time
 from pathlib import Path
 
-from .activation import _preflight, scp_pull, ssh_run, sftp_push_tree
+from .activation import _preflight, device_version, scp_pull, ssh_run, sftp_push_tree
 
 PLIST_REMOTE = "/mnt2/mobile/Library/Preferences/com.apple.springboard.plist"
 PLIST_NAME = "com.apple.springboard.plist"
@@ -93,6 +93,10 @@ def _edit_plist(kit_root, port, mutate, action):
 def lock_wipe(kit_root, port):
     """Arm the springboard wipe: 721 failed attempts + wipe enabled."""
 
+    version, _ = device_version(kit_root, port)
+    if version.startswith("9."):
+        raise ValueError("iOS 9 erasure uses erase-ios9 and NVRAM")
+
     def mutate(doc):
         doc[ATTEMPTS_KEY] = WIPE_ATTEMPTS
         doc[WIPE_KEY] = True
@@ -108,6 +112,9 @@ def lock_wipe(kit_root, port):
 def remove_disabled(kit_root, port):
     """Clear the disabled state: counter -9999, drop SBDevice* keys and
     LockoutState* files."""
+    version, _ = device_version(kit_root, port)
+    if version.startswith("9."):
+        raise ValueError("remove-disabled is unsupported on iOS 9")
     def mutate(doc):
         removed = sorted(key for key in doc
                          if key.startswith("SBDevice") and key != ATTEMPTS_KEY)
