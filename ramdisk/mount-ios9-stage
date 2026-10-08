@@ -46,10 +46,7 @@ if [[ "$mounts" != *'/dev/disk0s1s2 on /mnt2 '* ]]; then
     /sbin/mount_hfs -o rw /dev/disk0s1s2 /mnt2 \
         || fail 'direct journaled Data RW mount failed'
 fi
-mount_line=''
-while IFS= read -r line; do
-    if [[ "$line" == '/dev/disk0s1s2 on /mnt2 '* ]]; then mount_line="$line"; fi
-done <<< "$(/sbin/mount)"
+mount_line="$(/sbin/mount | /usr/bin/grep '^/dev/disk0s1s2 on /mnt2 ' || true)"
 [[ "$mount_line" == *journaled* && "$mount_line" != *read-only* ]] \
     || fail 'Data is not journaled RW'
 

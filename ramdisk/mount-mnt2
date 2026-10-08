@@ -14,12 +14,7 @@ if [ -f /private/var/tmp/ios9-profile.txt ]; then
         /usr/local/bin/finish-ios9-keybagd || fail 'iOS 9 system keybagd failed'
         ;;
     esac
-    MOUNT_LINE=''
-    while IFS= read -r line; do
-        case "$line" in
-          '/dev/disk0s1s2 on /mnt2 '*) MOUNT_LINE="$line" ;;
-        esac
-    done <<< "$(/sbin/mount)"
+    MOUNT_LINE="$(/sbin/mount | /usr/bin/grep '^/dev/disk0s1s2 on /mnt2 ' || true)"
     [ -n "$MOUNT_LINE" ] || fail 'iOS 9 Data is not mounted'
     case "$MOUNT_LINE" in
         *read-only*) fail 'iOS 9 Data is read-only' ;;
