@@ -13,7 +13,7 @@ from tools.boot import boot, ssh_command
 from tools.build import build
 from tools.common import host_platform, kit_bin, progress
 from tools.device import query_device, select_profile
-from tools.erase import arm_ios9_erase
+from tools.erase import arm_nvram_erase
 from tools.fetch import fetch_components
 from tools.patch_ibec import patch as patch_ibec
 from tools.patch_ibss import patch as patch_ibss
@@ -119,8 +119,8 @@ def parser():
                             "(attempts=-9999, drop SBDevice* keys, delete LockoutState* files)")
     add_kit(p)
     p.add_argument("--port", type=int, default=2236)
-    p = sub.add_parser("erase-ios9",
-                       help="arm iOS 9 Erase All Content and Settings in NVRAM")
+    p = sub.add_parser("nvram-erase", aliases=["erase-ios9"],
+                       help="arm iOS 9+ Erase All Content and Settings in NVRAM")
     add_kit(p)
     p.add_argument("--port", type=int, default=2236)
     p.add_argument("--confirm", action="store_true",
@@ -244,12 +244,12 @@ def main():
         for name in report.get("lockout_files_deleted", []):
             print(f"deleted /mnt2/mobile/Library/SpringBoard/{name}")
         print(f"On-device backup: {report['backup']}")
-    elif a.command == "erase-ios9":
+    elif a.command in ("nvram-erase", "erase-ios9"):
         if not a.confirm:
-            raise ValueError("erase-ios9 requires --confirm; the next normal boot "
+            raise ValueError("nvram-erase requires --confirm; the next normal boot "
                              "may erase all content and settings")
-        progress("writing and verifying iOS 9 erase NVRAM flag")
-        report = arm_ios9_erase(a.kit, a.port)
+        progress("writing and verifying iOS 9+ erase NVRAM flag")
+        report = arm_nvram_erase(a.kit, a.port)
         print(f"Armed {report['setting']} on iOS {report['version']} "
               f"({report['build']}). Reboot to apply the erase.")
     elif a.command == "ssh":

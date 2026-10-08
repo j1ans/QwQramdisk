@@ -8,10 +8,10 @@ The tar is simply the Lockdown folder itself:
     Lockdown/device_private_key.pem, device_public_key.pem
     Lockdown/escrow_records/**, Lockdown/pair_records/**
 
-`dump-activation` reads /mnt2/root/Library/Lockdown (iOS 7) or
-/mnt2/mobile/Library/mad (iOS 8, normalized to the Lockdown name) and
-`restore-activation` writes the folder back to /mnt2/root/Library/Lockdown,
-replacing the live one after taking an on-device *.bak-<timestamp> copy.
+`dump-activation` reads Lockdown on iOS 7, mad on iOS 8 and iOS 9.0-9.2,
+or the system container's activation_records and internal/data_ark.plist on
+iOS 9.3+. All sources are normalized to a Lockdown/ tar. Restore writes
+the live paths for the device version after taking on-device backups.
 
 The iRam userland shipped in the ramdisk (tar, ls -l) is linked against
 iOS 9+ libSystem symbols and crashes on the iOS 7 restore ramdisk
@@ -31,13 +31,14 @@ import sys
 import tarfile
 import tempfile
 import time
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from .boot import ssh_command
 from .common import kit_bin
 
 LOCKDOWN_REMOTE = "/mnt2/root/Library/Lockdown"
 MAD_REMOTE = "/mnt2/mobile/Library/mad"
+SYSTEM_CONTAINERS_REMOTE = "/mnt2/containers/Data/System"
 SYSTEM_VERSION_REMOTE = "/mnt1/System/Library/CoreServices/SystemVersion.plist"
 TAR_ROOT = "Lockdown"
 UNAMES = {0: "root", 501: "mobile", 25: "wireless"}
@@ -181,6 +182,36 @@ def _has_record(rows):
                if not is_dir)
 
 
+def _uses_system_container(version):
+    parts = [int(part) for part in version.split(".")[:2]]
+    return parts[0] > 9 or (parts[0] == 9 and len(parts) > 1 and parts[1] >= 3)
+
+
+def _system_containers(kit_root, port, filename, suffix_pattern):
+    """Find exact system container paths, without reading file contents."""
+    output = ssh_run(kit_root, port,
+                     f'find {SYSTEM_CONTAINERS_REMOTE} -type f -name "{filename}"')
+    pattern = re.compile(
+        rf"^{re.escape(SYSTEM_CONTAINERS_REMOTE)}/[0-9A-Fa-f-]{{36}}"
+        rf"{suffix_pattern}$")
+    return sorted({path.split("/Library/", 1)[0] for path in output.splitlines()
+                   if pattern.fullmatch(path)})
+
+
+def _system_container(kit_root, port, *, require_record):
+    if require_record:
+        roots = _system_containers(kit_root, port, "*_record.plist",
+                                   r"/Library/activation_records/[^/]+_record\.plist")
+    else:
+        roots = _system_containers(kit_root, port, "data_ark.plist",
+                                   r"/Library/internal/data_ark\.plist")
+    if len(roots) != 1:
+        kind = "activation record" if require_record else "internal/data_ark.plist"
+        raise RuntimeError(f"expected one iOS system container with {kind}; "
+                           f"found {len(roots)}")
+    return roots[0]
+
+
 def _add_dir(tf, name, mode, uid, gid, mtime):
     info = tarfile.TarInfo(name)
     info.type = tarfile.DIRTYPE
@@ -220,7 +251,7 @@ def _preflight(kit_root, port, action):
                            f"mounted before {action} activation records")
 
 
-def _pick_source(kit_root, port, version):
+def _pick_legacy_source(kit_root, port, version):
     """Find the tree holding a *_record.plist; the version-appropriate
     location wins, the other one is the fallback."""
     major = int(re.match(r"\d+", version).group())
@@ -244,6 +275,23 @@ def _pick_source(kit_root, port, version):
         f"neither {LOCKDOWN_REMOTE} nor {MAD_REMOTE} exists (iOS {version})")
 
 
+def _dump_sources(kit_root, port, version):
+    """Return (remote path, tar path, listing) for each activation source."""
+    if not _uses_system_container(version):
+        source, rows = _pick_legacy_source(kit_root, port, version)
+        return [(source, TAR_ROOT, rows)]
+    root = _system_container(kit_root, port, require_record=True)
+    records = root + "/Library/activation_records"
+    ark = root + "/Library/internal/data_ark.plist"
+    if ssh_run(kit_root, port, f'test -f "{ark}" && echo yes || echo no').strip() != "yes":
+        raise RuntimeError(f"activation record exists, but {ark} is missing")
+    record_rows = list_tree(kit_root, port, records)
+    if not _has_record(record_rows):
+        raise RuntimeError(f"no *_record.plist under {records}")
+    return [(records, TAR_ROOT + "/activation_records", record_rows),
+            (ark, TAR_ROOT + "/data_ark.plist", list_tree(kit_root, port, ark))]
+
+
 def dump_activation(kit_root, port, out=None, output_dir=None):
     """Collect the activation Lockdown folder from the running ramdisk.
 
@@ -251,24 +299,28 @@ def dump_activation(kit_root, port, out=None, output_dir=None):
     """
     _preflight(kit_root, port, "dumping")
     version, build = device_version(kit_root, port)
-    source, rows = _pick_source(kit_root, port, version)
-
-    source_dir_name = Path(source).name
+    sources = _dump_sources(kit_root, port, version)
     staging = Path(tempfile.mkdtemp(prefix="qwq-activation-"))
     mtime = int(time.time())
     try:
-        scp_pull(kit_root, port, source, staging)
         members = []  # (tar_path, local_or_None, mode, uid, gid, size)
-        for rel, mode, uid, gid, size, is_dir in rows:
-            tar_path = f"{TAR_ROOT}/{rel}" if rel else TAR_ROOT
-            if is_dir:
-                members.append((tar_path, None, mode, uid, gid, 0))
-                continue
-            local = staging / source_dir_name / rel
-            if not local.is_file() or local.stat().st_size != size:
-                raise RuntimeError(f"pulled copy of {rel} does not match the "
-                                   f"device listing ({size} bytes expected)")
-            members.append((tar_path, local, mode, uid, gid, size))
+        if _uses_system_container(version):
+            members.append((TAR_ROOT, None, 0o700, 0, 0, 0))
+        for index, (source, prefix, rows) in enumerate(sources):
+            dest = staging / str(index)
+            dest.mkdir()
+            is_root_file = len(rows) == 1 and not rows[0][-1] and rows[0][0] == ""
+            scp_pull(kit_root, port, source, dest, recursive=not is_root_file)
+            for rel, mode, uid, gid, size, is_dir in rows:
+                tar_path = f"{prefix}/{rel}" if rel else prefix
+                if is_dir:
+                    members.append((tar_path, None, mode, uid, gid, 0))
+                    continue
+                local = dest / Path(source).name / rel
+                if not local.is_file() or local.stat().st_size != size:
+                    raise RuntimeError(f"pulled copy of {rel} does not match the "
+                                       f"device listing ({size} bytes expected)")
+                members.append((tar_path, local, mode, uid, gid, size))
 
         timestamp = datetime.now().astimezone().strftime("%Y%m%d-%H%M%S-%f")
         default_name = f"{timestamp}-activation-{version}-{build}.tar"
@@ -294,9 +346,9 @@ def dump_activation(kit_root, port, out=None, output_dir=None):
             if not records:
                 raise RuntimeError("verification failed: no *_record.plist in the tar")
         info = {
-            "version": version, "build": build, "source": source,
+            "version": version, "build": build, "source": sources[0][0],
             "activation_records": records,
-            "record_files": sum(1 for rel, _, _, _, _, is_dir in rows if not is_dir),
+            "record_files": sum(1 for _, local, *_ in members if local is not None),
             "members": len(names),
         }
         return target, info
@@ -304,11 +356,84 @@ def dump_activation(kit_root, port, out=None, output_dir=None):
         shutil.rmtree(staging, ignore_errors=True)
 
 
-def restore_activation(kit_root, port, tar_path):
-    """Write a dumped Lockdown folder back to /mnt2/root/Library/Lockdown.
+def _restore_system_container(kit_root, port, staging, files, dirs, stamp):
+    """Restore the iOS 9.3+ record directory and internal data_ark."""
+    record_prefix = TAR_ROOT + "/activation_records"
+    ark_name = TAR_ROOT + "/data_ark.plist"
+    unexpected = [m.name for m in files + dirs
+                  if m.name not in (TAR_ROOT, record_prefix, ark_name)
+                  and not m.name.startswith(record_prefix + "/")]
+    if unexpected:
+        raise RuntimeError("iOS 9.3+ restore supports only activation_records "
+                           f"and data_ark.plist; unexpected: {unexpected[:5]}")
+    if not any(m.name == ark_name and m.isfile() for m in files):
+        raise RuntimeError("iOS 9.3+ restore requires Lockdown/data_ark.plist")
+    if not any(m.name.startswith(record_prefix + "/") and m.isfile()
+               and m.name.endswith("_record.plist") for m in files):
+        raise RuntimeError("iOS 9.3+ restore requires an activation record")
 
-    The live folder is replaced wholesale after being copied to
-    Lockdown.bak-<timestamp> on the device.  Returns (path, info).
+    root = _system_container(kit_root, port, require_record=False)
+    records = root + "/Library/activation_records"
+    ark = root + "/Library/internal/data_ark.plist"
+    remote_stage = f"/mnt2/tmp/qwq-restore-{stamp}"
+    dir_rels = {m.name[len(TAR_ROOT):].lstrip("/") for m in dirs}
+    file_rels = [m.name[len(TAR_ROOT):].lstrip("/") for m in files]
+    for rel in file_rels:
+        parent = PurePosixPath(rel).parent
+        while str(parent) != ".":
+            dir_rels.add(str(parent))
+            parent = parent.parent
+    sftp_push_tree(kit_root, port, staging / TAR_ROOT,
+                   f"{remote_stage}/{TAR_ROOT}", sorted(dir_rels), file_rels)
+
+    backups = []
+    script = ["set -e"]
+    for path in (records, ark):
+        exists = ssh_run(kit_root, port,
+                         f'[ -e "{path}" ] && echo yes || echo no').strip()
+        if exists == "yes":
+            backup = path + f".bak-{stamp}"
+            script.append(f'cp -R "{path}" "{backup}"')
+            backups.append(backup)
+    script += [
+        f'rm -rf "{records}"',
+        f'mv "{remote_stage}/{record_prefix}" "{records}"',
+        f'mv "{remote_stage}/{ark_name}" "{ark}"',
+    ]
+    for member in sorted(dirs, key=lambda m: m.name.count("/")) + \
+            sorted(files, key=lambda m: m.name.count("/")):
+        if member.name == TAR_ROOT:
+            continue
+        remote = (ark if member.name == ark_name else
+                  records + member.name[len(record_prefix):])
+        script.append(f'/usr/sbin/chown {member.uid}:{member.gid} "{remote}"')
+        script.append(f'/bin/chmod {member.mode:o} "{remote}"')
+    script.append(f'rm -rf "{remote_stage}"')
+    ssh_run(kit_root, port, "\n".join(script))
+
+    rows = list_tree(kit_root, port, records)
+    landed = {rel: size for rel, _, _, _, size, is_dir in rows if not is_dir}
+    expected = {m.name[len(record_prefix):].lstrip("/"): m.size for m in files
+                if m.name.startswith(record_prefix + "/")}
+    missing = {name: size for name, size in expected.items()
+               if landed.get(name) != size}
+    ark_rows = list_tree(kit_root, port, ark)
+    ark_size = next((size for rel, _, _, _, size, is_dir in ark_rows
+                     if rel == "" and not is_dir), None)
+    expected_ark_size = next(m.size for m in files if m.name == ark_name)
+    if ark_size != expected_ark_size:
+        missing[ark_name] = expected_ark_size
+    if missing:
+        raise RuntimeError(f"restore verification failed; these tar files "
+                           f"are absent or changed on the device: {missing}")
+    return backups
+
+
+def restore_activation(kit_root, port, tar_path):
+    """Restore a dumped Lockdown tar to the device version's activation paths.
+
+    Existing paths are backed up on the device before replacement.
+    Returns (path, info).
     """
     tar_path = Path(tar_path)
     if not tar_path.is_file():
@@ -318,10 +443,16 @@ def restore_activation(kit_root, port, tar_path):
     with tarfile.open(tar_path) as tf:
         members = tf.getmembers()
         unsafe = [m.name for m in members
-                  if m.name != TAR_ROOT and not m.name.startswith(TAR_ROOT + "/")]
+                  if (m.name != TAR_ROOT and not m.name.startswith(TAR_ROOT + "/"))
+                  or any(part in (".", "..") for part in PurePosixPath(m.name).parts)
+                  or re.fullmatch(r"[A-Za-z0-9_./-]+", m.name) is None
+                  or not (m.isfile() or m.isdir())]
         if unsafe:
             raise RuntimeError(f"tar must contain a single {TAR_ROOT}/ folder; "
                                f"unexpected members: {unsafe[:5]}")
+        names = [m.name for m in members]
+        if len(names) != len(set(names)):
+            raise RuntimeError("activation tar contains duplicate paths")
         if not any(m.isfile() and "_record.plist" in m.name for m in members):
             raise RuntimeError(f"no *_record.plist in {tar_path}; refusing to "
                                "restore a tar without an activation record")
@@ -333,6 +464,17 @@ def restore_activation(kit_root, port, tar_path):
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(tf.extractfile(member).read())
     try:
+        version, _ = device_version(kit_root, port)
+        if _uses_system_container(version):
+            stamp = datetime.now().astimezone().strftime("%Y%m%d-%H%M%S-%f")
+            backups = _restore_system_container(kit_root, port, staging,
+                                                files, dirs, stamp)
+            return tar_path, {
+                "tar": str(tar_path), "restored": len(files),
+                "activation_records": [m.name for m in files
+                                       if m.name.endswith("_record.plist")],
+                "backups": backups,
+            }
         stamp = time.strftime("%Y%m%d-%H%M%S")
         remote_stage = f"/mnt2/tmp/qwq-restore-{stamp}"
         ssh_run(kit_root, port, f'rm -rf "{remote_stage}"')

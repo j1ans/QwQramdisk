@@ -104,25 +104,28 @@ system binary is analyzed. `create` does not compile or sign the patcher.
 ./qwqramdisk restore-activation activation-7.1.1-11D201.tar
 ```
 
-The dump is simply the device's activation folder — activation record,
-`data_ark.plist`, device keys, escrow and pair records — packaged as a
-`Lockdown/` tree with the real on-device modes and ownership
-(`<timestamp>-activation-<version>-<build>.tar`, by default under `output/<profile>/`
-for `boot` and in the current directory for `dump-activation`).
+The dump packages the device's activation files as a `Lockdown/` tree,
+preserving their modes and ownership. Earlier versions can include device
+keys, escrow and pair records; iOS 9.3+ includes the system container's
+activation records and `data_ark.plist`. The default filename is
+`<timestamp>-activation-<version>-<build>.tar`, under `output/<profile>/`
+for `boot` and in the current directory for `dump-activation`.
 The timestamp includes microseconds, and an existing output file is never
 overwritten.
 
-`restore-activation` writes the folder back to
-`/mnt2/root/Library/Lockdown`, copying the live folder to
-`Lockdown.bak-<timestamp>` on the device first. Every restored file is
-size-checked against the tar before the command reports success.
+`restore-activation` backs up the live destination before writing. On iOS
+9.3 and newer it restores `activation_records` to the system container and
+`data_ark.plist` to that container's `Library/internal`; earlier versions
+retain the Lockdown restore path. Every restored file is size-checked against
+the tar before the command reports success.
 
-iOS 7 records are read from `/mnt2/root/Library/Lockdown` and iOS 8 records
-from `/mnt2/mobile/Library/mad`, both packaged under the `Lockdown/` name;
-the location suggested by the installed version is preferred and the other
-is used as a fallback when it is the one holding a `*_record.plist`. A dump
-or restore without any `*_record.plist` fails with an unactivated-device
-hint instead of moving a useless tree around.
+iOS 7 records are read from `/mnt2/root/Library/Lockdown`; iOS 8 and
+9.0–9.2 records are read from `/mnt2/mobile/Library/mad`. The location
+suggested by the installed version is preferred, with the other as fallback.
+For iOS 9.3 and newer, records come from the system container's
+`Library/activation_records` and `data_ark.plist` from `Library/internal`.
+All dumps use the `Lockdown/` tar layout. A dump or restore without any
+`*_record.plist` fails before writing a replacement.
 
 The iRam userland in the ramdisk is linked against iOS 9+ libSystem symbols,
 so its `tar` and `ls -l` crash on the iOS 7 restore ramdisk. Nothing is
@@ -148,10 +151,11 @@ failed-attempt counter far past the wipe threshold with wiping enabled.
 `SBDevice*` key, and removes all `LockoutState*` files from
 `/mnt2/mobile/Library/SpringBoard`.
 
-`remove-disabled` is not supported on iOS 9. To arm iOS 9 Erase All Content
-and Settings instead, run `./qwqramdisk erase-ios9 --confirm` from the booted
+`remove-disabled` is not supported on iOS 9. To arm iOS 9+ Erase All Content
+and Settings instead, run `./qwqramdisk nvram-erase --confirm` from the booted
 ramdisk, then reboot normally. This writes and verifies
 `oblit-inprogress=5` in NVRAM; the erase happens on the following boot.
+`erase-ios9` remains an alias for existing scripts.
 
 ## Commands
 
@@ -166,7 +170,7 @@ dump-activation Package the activation Lockdown folder into a tar
 restore-activation Write a dumped tar back onto the device
 lock-wipe       iOS 7/8: arm the springboard wipe lock
 remove-disabled iOS 7/8: clear the disabled state
-erase-ios9      Arm iOS 9 Erase All Content and Settings in NVRAM
+nvram-erase     Arm iOS 9+ Erase All Content and Settings in NVRAM
 ssh             Open an interactive root shell
 patch-ibss      Pattern-patch a decrypted iBSS
 patch-ibec      Pattern-patch a decrypted iBEC
