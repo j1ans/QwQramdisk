@@ -55,6 +55,11 @@ USER_IDS["_wireless"] = 25
 GROUP_IDS["_wireless"] = 25
 
 
+def _chown_id(value):
+    # Darwin reports nobody as unsigned -2; iOS chown rejects 4294967294.
+    return "nobody" if value in (-2, 4294967294) else str(value)
+
+
 def _ssh_base(kit_root, port):
     return [str(kit_bin(kit_root, "sshpass")), "-p", "alpine", "ssh", "-p", str(port),
             "-o", "PreferredAuthentications=password",
@@ -475,27 +480,35 @@ def _restore_system_container(kit_root, port, staging, files, dirs, stamp,
             remote = file_targets[member.name]
         else:
             continue  # Do not change existing parent directory ownership/mode.
-        script.append(f'/usr/sbin/chown {member.uid}:{member.gid} "{remote}"')
+        script.append(f'/usr/sbin/chown {_chown_id(member.uid)}:'
+                      f'{_chown_id(member.gid)} "{remote}"')
         script.append(f'/bin/chmod {member.mode:o} "{remote}"')
     script.append(f'rm -rf "{remote_stage}"')
     ssh_run(kit_root, port, "\n".join(script))
 
     rows = list_tree(kit_root, port, records)
-    landed = {rel: size for rel, _, _, _, size, is_dir in rows if not is_dir}
-    expected = {m.name[len(record_prefix):].lstrip("/"): m.size for m in files
-                if m.name.startswith(record_prefix + "/")}
-    missing = {name: size for name, size in expected.items()
-               if landed.get(name) != size}
+    landed = {rel: (mode, uid, gid, size, is_dir)
+              for rel, mode, uid, gid, size, is_dir in rows}
+    mismatched = []
+    for member in files + dirs:
+        if member.name != record_prefix and not member.name.startswith(record_prefix + "/"):
+            continue
+        rel = member.name[len(record_prefix):].lstrip("/")
+        actual = landed.get(rel)
+        if (actual is None or actual[:3] != (member.mode, member.uid, member.gid)
+                or actual[4] != member.isdir()
+                or (member.isfile() and actual[3] != member.size)):
+            mismatched.append(member.name)
     for name, path in file_targets.items():
         rows = list_tree(kit_root, port, path)
-        size = next((size for rel, _, _, _, size, is_dir in rows
-                     if rel == "" and not is_dir), None)
-        expected_size = next(m.size for m in files if m.name == name)
-        if size != expected_size:
-            missing[name] = expected_size
-    if missing:
-        raise RuntimeError(f"restore verification failed; these tar files "
-                           f"are absent or changed on the device: {missing}")
+        actual = next(((mode, uid, gid, size) for rel, mode, uid, gid, size, is_dir
+                       in rows if rel == "" and not is_dir), None)
+        member = next(m for m in files if m.name == name)
+        if actual != (member.mode, member.uid, member.gid, member.size):
+            mismatched.append(name)
+    if mismatched:
+        raise RuntimeError("restore verification failed for device metadata: "
+                           f"{mismatched}")
     return backups
 
 
@@ -578,7 +591,8 @@ def restore_activation(kit_root, port, tar_path):
         for member in sorted(dirs, key=lambda m: m.name.count("/")) + \
                 sorted(files, key=lambda m: m.name.count("/")):
             remote = LOCKDOWN_REMOTE + member.name[len(TAR_ROOT):]
-            script.append(f'/usr/sbin/chown {member.uid}:{member.gid} "{remote}"')
+            script.append(f'/usr/sbin/chown {_chown_id(member.uid)}:'
+                          f'{_chown_id(member.gid)} "{remote}"')
             script.append(f'/bin/chmod {member.mode:o} "{remote}"')
         script.append(f'rm -rf "{remote_stage}"')
         ssh_run(kit_root, port, "\n".join(script))
