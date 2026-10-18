@@ -11,6 +11,7 @@ from pathlib import Path
 SUPPORTED_HOSTS = {
     ("Darwin", "x86_64"): ("macos", "x86_64"),
     ("Darwin", "arm64"): ("macos", "arm64"),
+    ("Linux", "x86_64"): ("linux", "x86_64"),
 }
 
 
@@ -25,7 +26,8 @@ def host_platform(system=None, machine=None):
     except KeyError as exc:
         raise RuntimeError(
             f"unsupported host platform: {system}/{machine}; supported hosts "
-            "are macOS on x86_64 or arm64") from exc
+            "are macOS on x86_64 or arm64, and Linux on x86_64 "
+            "(offline builds only)") from exc
 
 
 def sha256(data):

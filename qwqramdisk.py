@@ -77,7 +77,7 @@ def parser():
     ap = argparse.ArgumentParser(prog="qwqramdisk",
         description="Build and boot an arm64 iOS 7/8/9 SSH ramdisk")
     sub = ap.add_subparsers(dest="command", required=True)
-    p = sub.add_parser("doctor", help="check required Legacy-iOS-Kit binaries"); add_kit(p)
+    p = sub.add_parser("doctor", help="check bundled host tools and ramdisk resources"); add_kit(p)
     sub.add_parser("versions", aliases=["profiles"], help="list supported iOS versions")
     p = sub.add_parser("fetch", help="fetch boot components for a device or board"); add_version(p); add_board(p)
     p.add_argument("--cache")
@@ -145,7 +145,16 @@ def _print_activation(path, info):
 
 def main():
     a = parser().parse_args()
-    host_platform()
+    platform_name, arch = host_platform()
+    if platform_name == "linux":
+        if a.command not in ("doctor", "versions", "profiles", "fetch", "create",
+                              "patch-ibss", "patch-ibec", "patch-kernel"):
+            raise ValueError("Linux currently supports offline ramdisk creation only; "
+                             "device commands still require macOS")
+        if a.command == "create" and not a.offline:
+            raise ValueError("Linux create requires --offline and --board or --profile")
+        if a.command == "fetch" and not (a.board or a.profile):
+            raise ValueError("Linux fetch requires --board or --profile")
     if a.command in ("versions", "profiles"):
         print("AUTO      any     iOS 7/8 A7/A8/A8X pattern-supported auto-detection")
         def version_key(item):
@@ -156,21 +165,22 @@ def main():
             print(f"{p['device']:9} {p['board']:5} iOS {p['version']:5} "
                   f"build {p['build']:7} {validation_status(name)}")
     elif a.command == "doctor":
-        progress("checking macOS host tools and ramdisk resources")
-        platform_name, arch = host_platform()
+        progress("checking host tools and ramdisk resources")
         print(f"host: {platform_name}/{arch}")
-        tools = ["pzb", "img4", "hfsplus", "irecovery", "gaster",
-                 "iproxy", "sshpass"]
-        tools.append("ipwnder")
+        tools = ["pzb", "img4", "hfsplus"]
+        if platform_name == "macos":
+            tools += ["irecovery", "gaster", "iproxy", "sshpass", "ipwnder"]
+        else:
+            print("scope: offline creation; DFU/boot/SSH commands are not supported")
         for name in tools:
             print(f"{name}: {kit_bin(a.kit, name)}")
-        for name in ("ssh", "scp", "ps"):
+        for name in (("ssh", "scp", "ps") if platform_name == "macos" else ()):
             path = shutil.which(name)
             if not path:
                 raise FileNotFoundError(
                     f"required system command not found in PATH: {name}")
             print(f"{name}: {path}")
-        for name in ("IM4M7", "IM4M8", "sbplist.tar"):
+        for name in ("IM4M7", "IM4M8", "IM4M9", "sbplist.tar"):
             path = Path(a.kit) / "resources/sshrd" / name
             if not path.is_file():
                 raise FileNotFoundError(path)

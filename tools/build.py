@@ -118,6 +118,8 @@ def build(kit_root, output, cache, project_root, profile="n53-12F70",
     kit_root = Path(kit_root).expanduser().resolve()
     output, cache = Path(output).resolve(), Path(cache).resolve()
     project_root = Path(project_root).resolve()
+    img4 = kit_bin(kit_root, "img4")
+    hfsplus = kit_bin(kit_root, "hfsplus")
 
     if skip_fetch:
         fw, keys, sources = cached_components(cache, profile)
@@ -127,8 +129,6 @@ def build(kit_root, output, cache, project_root, profile="n53-12F70",
         fetch_components(kit_root, cache, profile)
         fw, keys, sources = cached_components(cache, profile)
     output.mkdir(parents=True, exist_ok=True)
-    img4 = kit_bin(kit_root, "img4")
-    hfsplus = kit_bin(kit_root, "hfsplus")
 
     dec = cache / "decrypted"; dec.mkdir(exist_ok=True)
     ibss_dec, ibec_dec = dec / "iBSS.raw", dec / "iBEC.raw"

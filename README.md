@@ -13,6 +13,11 @@ patch locations from ARM64 patterns and cross-references, and produces IMG4
 components.
 It does not download the full IPSW or RootFS.
 
+**Experimental Linux support:** x86_64 Linux can create ramdisks without a
+connected device using `create --offline`. Offline builds have been tested on
+Ubuntu 22.04; Linux device detection, DFU boot, SSH, and `/mnt2` mounting are
+not yet supported.
+
 Device-tested on the iPhone 5s (iOS 7–8), iPhone 6 (iOS 8),
 iPad mini 2 (iOS 7), and iPhone 6s Plus (iOS 9.0.1 and 9.3.1).
 The iOS 9.0.1 iPhone 6s Plus profile passed SSH and `/mnt2` read/write
@@ -22,17 +27,21 @@ and firmware build.
 
 ## Requirements
 
-- Intel or Apple Silicon macOS with Python 3; Linux is unsupported
+- Intel or Apple Silicon macOS with Python 3, or x86_64 Linux with Python 3
+  for experimental offline ramdisk creation
 - a C compiler is optional (it accelerates LZSS compression)
 - an identified device in DFU mode for `boot` or device-detected builds
 - USB access for device commands; a serial cable is optional
 
-The repository includes native x86_64 and arm64 macOS host tools and ramdisk
-resources. The correct binary set is selected by CPU architecture, so Rosetta
-or a separate Legacy-iOS-Kit checkout is not required. Other host operating
-systems and CPU architectures fail closed.
+The repository includes native x86_64 and arm64 macOS host tools, x86_64 Linux
+build tools, and ramdisk resources. The correct binary set is selected by host
+OS and CPU architecture, so Rosetta or a separate Legacy-iOS-Kit checkout is
+not required. Other host operating systems and CPU architectures fail closed.
+Experimental Linux support covers `doctor`, `versions`, board/profile-based
+`fetch`, `create --offline`, and the standalone patch commands. Device
+detection, DFU boot, SSH, and device operations still require macOS.
 
-## Quick start
+## Quick start (macOS)
 
 ```sh
 git clone https://github.com/j1ans/QwQramdisk.git
@@ -50,6 +59,39 @@ chmod +x qwqramdisk
 The SSH endpoint is `root@localhost:2236`, password `alpine`.
 
 ## Build without a connected device
+
+### Experimental Linux support (x86_64)
+
+On x86_64 Linux (tested on Ubuntu 22.04.5), install the runtime libraries and
+check the bundled build tools first:
+
+```sh
+sudo apt-get install python3 libcurl4 libssl3 zlib1g libstdc++6
+chmod +x qwqramdisk vendor/bin/linux/x86_64/*
+./qwqramdisk doctor
+./qwqramdisk create 8.3 --board n53ap --offline
+```
+
+A C compiler (`build-essential` on Ubuntu) is optional and speeds up kernel
+compression. The Linux tools run as a normal user; creating the HFS filesystem
+does not mount it or require root. Use `--offline` and an explicit `--board`
+or `--profile` for Linux builds.
+
+The following offline builds passed firmware, IMG4 payload/ticket, patch,
+kernel monitor, and injected HFS file checks on Ubuntu 22.04.5 x86_64:
+
+| Device | iOS | Profile |
+|---|---|---|
+| iPhone 5s (Global) | 7.1.1 | `n53-11D201` |
+| iPhone 5s (Global) | 8.3 | `n53-12F70` |
+| iPhone 6s Plus | 9.3.1 | `n66m-13E238` |
+
+An iOS 8.3 rebuild with `--offline --no-download` also passed with no
+IPv4/IPv6 network calls recorded by `strace`. These checks cover image
+creation; they do not validate Linux DFU boot, SSH, or on-device mounting.
+Linux arm64 is not currently supported.
+
+### Offline creation commands
 
 Select a built-in board and iOS version to create the ramdisk without DFU:
 
@@ -306,7 +348,8 @@ addresses, XREFs, original bytes, and replacements.
 - iOS 9.0–9.3.5 is experimental: 195 exact board/build combinations passed
   offline bootchain and full-image checks; most device startup and `/mnt2`
   mount combinations remain untested
-- macOS x86_64 and arm64 are the supported host platforms
+- macOS x86_64 and arm64 support the full workflow; **experimental Linux
+  x86_64 support** covers offline ramdisk creation only
 - iOS 7/8 A7/A8/A8X PRODUCT/MODEL combinations are available through
   automatic firmware selection without a model allowlist
 - `versions` prints support status for every selectable profile
@@ -321,6 +364,8 @@ addresses, XREFs, original bytes, and replacements.
   tooling, the established SSH ramdisk workflow, and the bundled host-tool
   builds. The original macOS set came from commit
   `bd921d51d8d84232d668adfd54e3e1e2edff9a33`.
+  The Linux x86_64 `pzb`, `img4`, and `hfsplus` binaries came from commit
+  `0f05c64974d37c538b9a4e6eac8840333b3e66dd`.
 - [SSHRD_Script](https://github.com/verygenericname/SSHRD_Script) by Nathan /
   verygenericname — reference for modern checkm8 SSH ramdisk construction and
   boot sequencing.
